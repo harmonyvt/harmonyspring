@@ -1,9 +1,9 @@
-name: Build and publish the container image
+name: Build harmonyspring image
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - master
 
 jobs:
   build-and-push-image:
