@@ -44,4 +44,3 @@ jobs:
           push: true
           tags: |
             ghcr.io/harmonyvt/harmonyspring:latest
-            ghcr.io/harmonyvt/harmonyspring:${{ env.tag }}
