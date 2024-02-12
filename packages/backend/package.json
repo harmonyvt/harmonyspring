@@ -9,7 +9,7 @@
 		"url": "https://github.com/Pitu"
 	},
 	"scripts": {
-		"build": "rimraf \"dist/*/{*.js,!(site/)}\" --glob && tsc && tsc-alias",
+		"build": "rimraf \"dist/*/{*.js,!(site/)}\" --glob && tsc && tsc-alias && npm run sentry:sourcemaps",
 		"start": "yarn migrate && cross-env NODE_ENV=production NODE_PRESERVE_SYMLINKS=1 node -r dotenv/config -r tsconfig-paths/register dist/main.js dotenv_config_path=../../.env",
 		"dev": "cross-env NODE_PRESERVE_SYMLINKS=1 tsx watch src/main.ts",
 		"studio": "prisma studio",
@@ -18,7 +18,8 @@
 		"migrate:dev": "prisma migrate dev && prisma generate",
 		"setup": "yarn install && yarn migrate",
 		"lint": "prettier --check . && cross-env TIMING=1 eslint src --ext .ts",
-		"format": "prettier --write . && cross-env TIMING=1 eslint src --ext .ts --fix"
+		"format": "prettier --write . && cross-env TIMING=1 eslint src --ext .ts --fix",
+		"sentry:sourcemaps": "sentry-cli sourcemaps inject --org harmony-b7eb4a34 --project harmonyspringserver ./dist && sentry-cli sourcemaps upload --org harmony-b7eb4a34 --project harmonyspringserver ./dist"
 	},
 	"type": "module",
 	"repository": {
@@ -41,11 +42,14 @@
 		"@napi-rs/blake-hash": "^1.3.4",
 		"@prisma/client": "^5.9.1",
 		"@scalar/fastify-api-reference": "^1.15.5",
+		"@sentry/cli": "^2.28.0",
+		"@sentry/node": "^7.100.1",
+		"@sentry/profiling-node": "^7.100.1",
 		"adm-zip": "^0.5.10",
 		"bcryptjs": "^2.4.3",
 		"chokidar": "^3.6.0",
 		"cross-env": "^7.0.3",
-		"dotenv": "^16.4.1",
+		"dotenv": "^16.4.2",
 		"envinfo": "^7.11.1",
 		"fastify": "^4.26.0",
 		"fastify-html": "^0.3.3",

@@ -16,7 +16,7 @@ import type { FileInProgress, RequestUser, User } from '@/structures/interfaces.
 import { SETTINGS } from '@/structures/settings.js';
 import { log } from '@/utils/Logger.js';
 import { generateThumbnails, getFileThumbnail, removeThumbs } from './Thumbnails.js';
-import { getHost } from './Util.js';
+import { getHost, validateURL } from './Util.js';
 
 const fileIdentifierMaxTries = 5;
 
@@ -413,16 +413,17 @@ export const uploadFilefromURL = async ({
 	url: string;
 	user: RequestUser | User | undefined;
 }) => {
+	const validatedURL = validateURL(url).href;
 	const uniqueIdentifier = await getUniqueFileIdentifier();
 	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
 	log.debug(`> Name for upload: ${uniqueIdentifier}`);
-	const newFileName = String(uniqueIdentifier) + extname(url);
+	const newFileName = String(uniqueIdentifier) + extname(validatedURL);
 	log.debug(`> Name for upload: ${newFileName}`);
 	const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/${newFileName}`, import.meta.url));
 	const newPath = fileURLToPath(new URL(`../../../../uploads/${newFileName}`, import.meta.url));
 	log.debug(`> Path for upload: ${tempPath}`);
 	await jetpack
-		.writeAsync(tempPath, await (await fetch(url)).buffer())
+		.writeAsync(tempPath, await (await fetch(validatedURL)).buffer())
 		.then(async () => {
 			log.debug(`> File written to disk: ${tempPath}`);
 		})

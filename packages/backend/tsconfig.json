@@ -4,14 +4,23 @@
 		"target": "ESNext",
 		"rootDir": "./src",
 		"outDir": "./dist",
-		"sourceRoot": "./",
+
+		// Set `sourceRoot` to  "/" to strip the build path prefix
+		// from generated source code references.
+		// This improves issue grouping in Sentry.
+		"sourceRoot": "/",
+
 		"baseUrl": ".",
 		"module": "NodeNext",
 		"moduleResolution": "NodeNext",
+
 		"paths": {
 			"@/*": ["./src/*"],
 			"~/*": ["./src/*"]
-		}
+		},
+
+		"sourceMap": true,
+		"inlineSources": true
 	},
 	"include": ["src/**/*.ts"],
 	"exlude": ["node_modules"]
