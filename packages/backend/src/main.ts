@@ -4,8 +4,8 @@ import { URL, fileURLToPath } from 'node:url';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import fstatic from '@fastify/static';
-// import * as Sentry from '@sentry/node';
-// import { ProfilingIntegration } from '@sentry/profiling-node';
+import * as Sentry from '@sentry/node';
+import { ProfilingIntegration } from '@sentry/profiling-node';
 import dotenv from 'dotenv';
 import fastify from 'fastify';
 import { jsonSchemaTransform } from 'fastify-type-provider-zod';
@@ -22,12 +22,12 @@ import { startUpdateCheckSchedule } from './utils/UpdateCheck.js';
 import { createAdminUserIfNotExists, VERSION } from './utils/Util.js';
 import { fileWatcher, getFileWatcher } from './utils/Watcher.js';
 dotenv.config();
-/*
+
 if (!process.env.SENTRY_DSN) {
 	console.error('No Sentry DSN provided, exiting...');
 	process.exit(1);
 }
-*/
+
 // Create the Fastify server
 const server = fastify({
 	trustProxy: true,
@@ -36,7 +36,7 @@ const server = fastify({
 	logger: log,
 	disableRequestLogging: true
 });
-/*
+
 Sentry.init({
 	dsn: process.env.SENTRY_DSN as string,
 
@@ -60,7 +60,6 @@ Sentry.startSpan(
 		// will now be automatically profiled.
 	}
 );
-*/
 const watcher = getFileWatcher();
 
 let htmlBuffer: Buffer | null = null;
