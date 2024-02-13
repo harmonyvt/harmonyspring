@@ -13709,6 +13709,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"yt-dlp-wrap@npm:^2.3.12":
+  version: 2.3.12
+  resolution: "yt-dlp-wrap@npm:2.3.12"
+  checksum: 9e75b5e3c8bf747415f73cc416ada9e05877e487ac2237f406a717ba5a0ae627be72db1bee81068b517b6e6d5406f3d41a91086ae0523bf7647f0a9ed84d8bd0
+  languageName: node
+  linkType: hard
+
 "zhead@npm:^2.2.4":
   version: 2.2.4
   resolution: "zhead@npm:2.2.4"
