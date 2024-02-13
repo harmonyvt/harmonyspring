@@ -1,5 +1,6 @@
 <template>
 	<template v-if="isUploadEnabled">
+		<UploadInformationDialogue :isDialogOpen="isDialogOpen" />
 		<input
 			v-model="url"
 			type="text"
@@ -9,7 +10,7 @@
 		<button
 			type="button"
 			class="w-full h-12 rounded-md bg-[#2a4a5a] border-4 shadow-lg border-[#303436]"
-			@click="fetchRequest"
+			@click="fetchAndOpenDialog"
 		>
 			<div class="flex items-center justify-center h-full">
 				<Download class="w-6 h-6" />
@@ -30,17 +31,19 @@
 <script setup lang="ts">
 import { Download, Cloud } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import UploadInformationDialogue from '@/components/dialogs/UploadInformationDialogue.vue';
 import { useUserStore, useSettingsStore } from '~/store';
 const userStore = useUserStore();
-// const uploadsStore = useUploadsStore();
+const isDialogOpen = ref(false);
 const settingsStore = useSettingsStore();
 const isUploadEnabled = computed(() => {
 	if (settingsStore.publicMode) return true;
 	return isLoggedIn.value;
 });
-const token = computed(() => userStore.user.token);
+// const token = computed(() => userStore.user.token);
 const isLoggedIn = computed(() => userStore.user.loggedIn);
 const url = ref('');
+/*
 const fetchRequest = async () => {
 	console.log(url.value);
 
@@ -58,5 +61,12 @@ const fetchRequest = async () => {
 	await result.then(res => {
 		console.log(res);
 	});
+};
+*/
+
+const fetchAndOpenDialog = async () => {
+	// Call your fetch function here
+	// After fetching, open the dialog
+	isDialogOpen.value = true;
 };
 </script>
