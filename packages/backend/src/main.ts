@@ -55,10 +55,7 @@ Sentry.startSpan(
 		op: 'rootSpan',
 		name: 'Harmonyspring'
 	},
-	() => {
-		// Any code executed inside this callback
-		// will now be automatically profiled.
-	}
+	() => {}
 );
 
 const watcher = getFileWatcher();
