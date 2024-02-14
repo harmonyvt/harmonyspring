@@ -16,7 +16,7 @@ import type { FileInProgress, RequestUser, User } from '@/structures/interfaces.
 import { SETTINGS } from '@/structures/settings.js';
 import { log } from '@/utils/Logger.js';
 import { generateThumbnails, getFileThumbnail, removeThumbs } from './Thumbnails.js';
-import { getHost, validateURL } from './Util.js';
+import { getHost } from './Util.js';
 
 const fileIdentifierMaxTries = 5;
 
