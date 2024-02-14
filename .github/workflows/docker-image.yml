@@ -1,42 +1,35 @@
-name: Build harmonyspring image
+with:
+  fetch-depth: 0
 
-on:
-  push:
-    branches:
-      - master
+- name: Get tag
+  id: repository
+  run: echo "tag=$(git describe --tags HEAD)" > $GITHUB_ENV
 
-jobs:
-  build-and-push-image:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+- name: Set up Docker Buildx
+  uses: docker/setup-buildx-action@v2
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+- name: Log in to GitHub Container Registry
+  uses: docker/login-action@v2
+  with:
+    registry: ghcr.io
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get tag
-        id: repository
-        run: echo "tag=$(git describe --tags HEAD)" > $GITHUB_ENV
+- name: Create Sentry release
+  uses: getsentry/action-release@v1
+  env:
+    SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+    SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+  with:
+    environment: 'production'
+    sourcemaps: './dist'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
+- name: Build and push
+  uses: docker/build-push-action@v3
+  env:
+    SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+  with:
+    context: .
+    platforms: linux/amd64,linux/arm64

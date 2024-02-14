@@ -1,5 +1,5 @@
 {
-	"name": "chibisafe",
+	"name": "harmonyspring",
 	"version": "5.6.0",
 	"description": "Blazing fast file uploader and bunker written in node! 🚀",
 	"private": true,
@@ -9,19 +9,14 @@
 		"lint": "turbo run lint",
 		"format": "turbo run format",
 		"postinstall": "is-ci || husky",
-		"generate": "yarn workspace @chibisafe/backend generate",
-		"migrate": "yarn workspace @chibisafe/backend migrate",
-		"migrate:dev": "yarn workspace @chibisafe/backend migrate:dev",
-		"start": "yarn workspace @chibisafe/backend start",
-		"migrate-v4-to-v5": "yarn workspace @chibisafe/migration start",
-		"backend": "yarn workspace @chibisafe/backend dev",
-		"frontend": "yarn workspace @chibisafe/website dev",
+		"generate": "yarn workspace @harmonyspring/backend generate",
+		"migrate": "yarn workspace @harmonyspring/backend migrate",
+		"migrate:dev": "yarn workspace @harmonyspring/backend migrate:dev",
+		"start": "yarn workspace @harmonyspring/backend start",
+		"migrate-v4-to-v5": "yarn workspace @harmonyspring/migration start",
+		"backend": "yarn workspace @harmonyspring/backend dev",
+		"frontend": "yarn workspace @harmonyspring/website dev",
 		"update": "yarn upgrade-interactive"
-	},
-	"author": {
-		"name": "Pitu",
-		"email": "heyitspitu@gmail.com",
-		"url": "https://github.com/Pitu"
 	},
 	"license": "MIT",
 	"engines": {

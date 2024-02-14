@@ -1,22 +1,10 @@
 {
-	"name": "@chibisafe/migration",
+	"name": "@harmonyspring/migration",
 	"version": "0.0.1",
 	"description": "Migration tool for chibisafe versions 🚀",
 	"license": "MIT",
-	"author": {
-		"name": "Pitu",
-		"email": "heyitspitu@gmail.com",
-		"url": "https://github.com/Pitu"
-	},
 	"scripts": {
 		"start": "ts-node src/index.ts"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/WeebDev/chibisafe"
-	},
-	"bugs": {
-		"url": "https://github.com/WeebDev/chibisafe/issues"
 	},
 	"engines": {
 		"node": ">=18.0.0"

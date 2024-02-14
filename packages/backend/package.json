@@ -1,15 +1,10 @@
 {
-	"name": "@chibisafe/backend",
+	"name": "@harmonyspring/backend",
 	"version": "5.1.3",
 	"description": "Blazing fast file uploader and bunker written in node! 🚀",
 	"license": "MIT",
-	"author": {
-		"name": "Pitu",
-		"email": "heyitspitu@gmail.com",
-		"url": "https://github.com/Pitu"
-	},
 	"scripts": {
-		"build": "rimraf \"dist/*/{*.js,!(site/)}\" --glob && tsc && tsc-alias && npm run sentry:sourcemaps",
+		"build": "rimraf \"dist/*/{*.js,!(site/)}\" --glob && tsc && tsc-alias",
 		"start": "yarn migrate && cross-env NODE_ENV=production NODE_PRESERVE_SYMLINKS=1 node -r dotenv/config -r tsconfig-paths/register dist/main.js dotenv_config_path=../../.env",
 		"dev": "cross-env NODE_PRESERVE_SYMLINKS=1 tsx watch src/main.ts",
 		"studio": "prisma studio",
@@ -18,17 +13,9 @@
 		"migrate:dev": "prisma migrate dev && prisma generate",
 		"setup": "yarn install && yarn migrate",
 		"lint": "prettier --check . && cross-env TIMING=1 eslint src --ext .ts",
-		"format": "prettier --write . && cross-env TIMING=1 eslint src --ext .ts --fix",
-		"sentry:sourcemaps": "sentry-cli sourcemaps inject --org harmony-b7eb4a34 --project harmonyspringserver ./dist && sentry-cli sourcemaps upload --org harmony-b7eb4a34 --project harmonyspringserver ./dist"
+		"format": "prettier --write . && cross-env TIMING=1 eslint src --ext .ts --fix"
 	},
 	"type": "module",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/WeebDev/chibisafe"
-	},
-	"bugs": {
-		"url": "https://github.com/WeebDev/chibisafe/issues"
-	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.509.0",
 		"@aws-sdk/s3-request-presigner": "^3.509.0",
@@ -101,17 +88,6 @@
 	"prisma": {
 		"schema": "src/prisma/schema.prisma"
 	},
-	"keywords": [
-		"chibisafe",
-		"lolisafe",
-		"upload",
-		"uploader",
-		"file",
-		"vue",
-		"ssr",
-		"file uploader",
-		"images"
-	],
 	"engines": {
 		"node": ">=18.9.0"
 	}
