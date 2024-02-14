@@ -1,35 +1,50 @@
-with:
-  fetch-depth: 0
+name: Docker Image CI
 
-- name: Get tag
-  id: repository
-  run: echo "tag=$(git describe --tags HEAD)" > $GITHUB_ENV
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
-- name: Set up Docker Buildx
-  uses: docker/setup-buildx-action@v2
+jobs:
+  build:
 
-- name: Log in to GitHub Container Registry
-  uses: docker/login-action@v2
-  with:
-    registry: ghcr.io
-    username: ${{ github.actor }}
-    password: ${{ secrets.GITHUB_TOKEN }}
+    runs-on: ubuntu-latest
 
-- name: Create Sentry release
-  uses: getsentry/action-release@v1
-  env:
-    SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-    SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-    SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-  with:
-    environment: 'production'
-    sourcemaps: './dist'
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
-- name: Build and push
-  uses: docker/build-push-action@v3
-  env:
-    SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-    SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-  with:
-    context: .
-    platforms: linux/amd64,linux/arm64
+    - name: Get tag
+      id: repository
+      run: echo "tag=$(git describe --tags HEAD)" > $GITHUB_ENV
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Sentry release
+      uses: getsentry/action-release@v1
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+      with:
+        environment: 'production'
+        sourcemaps: './dist'
+
+    - name: Build and push
+      uses: docker/build-push-action@v3
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
