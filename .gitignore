@@ -20,7 +20,7 @@ database.sqlite-journal
 # Log files
 npm-debug.log*
 
-# chibisafe generated files
+# harmonyspring generated files
 uploads/
 database/
 logs/
