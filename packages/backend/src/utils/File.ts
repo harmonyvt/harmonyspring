@@ -413,44 +413,38 @@ export const uploadFilefromURL = async ({
 	url: string;
 	user: RequestUser | User | undefined;
 }) => {
-	const validatedURL = validateURL(url).href;
 	const uniqueIdentifier = await getUniqueFileIdentifier();
 	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
 	log.debug(`> Name for upload: ${uniqueIdentifier}`);
-	const newFileName = String(uniqueIdentifier) + extname(validatedURL);
-	log.debug(`> Name for upload: ${newFileName}`);
-	const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/${newFileName}`, import.meta.url));
-	const newPath = fileURLToPath(new URL(`../../../../uploads/${newFileName}`, import.meta.url));
-	log.debug(`> Path for upload: ${tempPath}`);
-	await jetpack
-		.writeAsync(tempPath, await (await fetch(validatedURL)).buffer())
-		.then(async () => {
-			log.debug(`> File written to disk: ${tempPath}`);
-		})
-		.catch(error => {
-			log.error(`> Error writing file to disk: ${error}`);
-		});
 
+	// Download the file to a temporary location
+	const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/${uniqueIdentifier}`, import.meta.url));
+	// dont use validatedURL directly, it may be not have the params to fetch the file
+	await jetpack.writeAsync(tempPath, await (await fetch(url)).buffer());
+
+	// Determine the file type
 	const fileType = await fileTypeFromFile(tempPath).catch(error => {
 		log.error(`> Error getting file type: ${error}`);
 	});
 
-	log.debug(`> File type: ${fileType?.mime}`);
+	// Construct the new file name with the correct extension
+	const newFileName = `${uniqueIdentifier}${fileType ? `.${fileType.ext}` : ''}`;
+	log.debug(`> New file name with extension: ${newFileName}`);
 
-	// check if user is authenticated
-	if (user !== undefined) {
-		log.debug(`> User authenticated: ${user.id}`);
-	}
+	// Rename the file with the correct extension
+	const newPath = fileURLToPath(new URL(`../../../../uploads/${newFileName}`, import.meta.url));
+	await jetpack.moveAsync(tempPath, newPath);
 
+	// Update the file record in the database with the new file name and extension
 	const file = {
 		userId: user?.id,
 		name: newFileName,
-		extension: extname(newFileName),
-		path: tempPath,
+		extension: fileType ? fileType.ext : '',
+		path: newPath,
 		original: newFileName,
 		type: fileType?.mime ?? 'application/octet-stream',
-		size: String(jetpack.inspect(tempPath)?.size ?? 0),
-		hash: await hashFile(tempPath),
+		size: String(jetpack.inspect(newPath)?.size ?? 0),
+		hash: await hashFile(newPath),
 		ip,
 		isS3: false,
 		isWatched: false
@@ -458,22 +452,16 @@ export const uploadFilefromURL = async ({
 
 	let uploadedFile;
 	const fileOnDb = await checkFileHashOnDB(user, file);
-	log.debug(`> File on DB: ${fileOnDb?.repeated}`);
 	if (fileOnDb?.repeated) {
-		log.debug(`> File already exists: ${fileOnDb.file.name}`);
 		uploadedFile = fileOnDb.file;
 		await deleteTmpFile(tempPath);
-		log.debug(`> Temporary file deleted: ${tempPath}`);
-		return uploadedFile;
 	} else {
-		await jetpack.moveAsync(tempPath, newPath);
-		log.debug(`> File moved to permanent location: ${newPath}`);
 		const savedFile = await storeFileToDb(user, file, albumId ? albumId : undefined);
-		log.debug(`> File stored in database: ${savedFile.file.name}`);
 		uploadedFile = savedFile.file;
 		void generateThumbnails({ filename: savedFile.file.name });
-		return uploadedFile;
 	}
+
+	return uploadedFile;
 };
 
 export const saveFileToAlbum = async (albumId: number, fileId: number) => {
