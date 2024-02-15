@@ -7,6 +7,7 @@
 			<div class="flex w-full mt-16 mobile:mt-6 items-center max-w-4xl mobile:flex-col-reverse">
 				<div class="flex flex-1 justify-center flex-col mobile:mt-8 mobile:p-6">
 					<UploaderLink />
+					<UploaderYTDLP />
 				</div>
 				<div>
 					<h5 class="font-bold text-7xl px-7">OR</h5>
@@ -80,6 +81,7 @@ import { ref, computed, onMounted } from 'vue';
 import Header from '~/components/header/Header.vue';
 import Uploader from '~/components/upload/Uploader.vue';
 import UploaderLink from '~/components/upload/UploaderLink.vue';
+import UploaderYTDLP from '~/components/upload/UploaderYTDLP.vue';
 import { useUploadsStore } from '~/store';
 import { formatBytes } from '~/use/file';
 
