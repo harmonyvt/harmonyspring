@@ -24,6 +24,7 @@ npm-debug.log*
 uploads/
 database/
 logs/
+helper/
 
 .env
 

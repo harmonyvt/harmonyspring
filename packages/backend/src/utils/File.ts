@@ -11,6 +11,7 @@ import moment from 'moment';
 import fetch from 'node-fetch';
 import randomstring from 'randomstring';
 import { v4 as uuidv4 } from 'uuid';
+import YTDlpWrap from 'yt-dlp-wrap';
 import prisma from '@/structures/database.js';
 import type { FileInProgress, RequestUser, User } from '@/structures/interfaces.js';
 import { SETTINGS } from '@/structures/settings.js';
@@ -586,6 +587,85 @@ export const handleUploadFile = async ({
 		uploadedFile = savedFile.file;
 
 		// Generate thumbnails
+		void generateThumbnails({ filename: savedFile.file.name });
+	}
+
+	return uploadedFile;
+};
+
+export const YTDLPFilefromURL = async ({
+	user,
+	ip,
+	url,
+	albumId
+}: {
+	albumId?: number | null | undefined;
+	ip: string;
+	url: string;
+	user?: RequestUser | User | undefined;
+}) => {
+	const uniqueIdentifier = await getUniqueFileIdentifier();
+	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
+	log.debug(`> Name for upload: ${uniqueIdentifier}`);
+
+	// Download the file to a temporary location
+	const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/`, import.meta.url));
+	const HelperFolder = fileURLToPath(new URL(`../../../../helper`, import.meta.url));
+	const YTDLP = YTDlpWrap.default;
+	const YTDLPWrapper = new YTDLP(HelperFolder + '/yt-dlp');
+	const tempFile = uniqueIdentifier + '.mp4';
+	const tempFilePath = tempPath + tempFile;
+	log.debug(`yt-dlp: attempting to download ${url} to ${tempFilePath}`);
+	const YTDLPWaiter = new Promise<void>((resolve, reject) => {
+		const YTDLPWrapperEvent = YTDLPWrapper.exec([url, '-f', 'best', '-o', tempFilePath])
+			.on('progress', progress => {
+				log.debug(`yt-dlp: ${progress.percent}%`);
+			})
+			.on('error', error => {
+				log.error(`yt-dlp: ${error.message}`);
+				reject(error);
+			})
+			.on('close', () => {
+				log.debug(`yt-dlp: ${YTDLPWrapperEvent.ytDlpProcess?.pid} finished ` + user?.id);
+				resolve();
+			});
+	});
+	await YTDLPWaiter;
+	// Determine the file type
+	const fileType = await fileTypeFromFile(tempFilePath).catch(error => {
+		log.error(`> Error getting file type: ${error}`);
+	});
+
+	// Construct the new file name with the correct extension
+	log.debug(`> New file name with extension: ${tempFile}`);
+
+	// Rename the file with the correct extension
+	const newPath = fileURLToPath(new URL(`../../../../uploads/${tempFile}`, import.meta.url));
+	await jetpack.moveAsync(tempFilePath, newPath);
+
+	// Update the file record in the database with the new file name and extension
+	const file = {
+		userId: user?.id,
+		name: tempFile,
+		extension: fileType ? fileType.ext : '',
+		path: newPath,
+		original: tempFile,
+		type: fileType?.mime ?? 'application/octet-stream',
+		size: String(jetpack.inspect(newPath)?.size ?? 0),
+		hash: await hashFile(newPath),
+		ip,
+		isS3: false,
+		isWatched: false
+	};
+
+	let uploadedFile;
+	const fileOnDb = await checkFileHashOnDB(user, file);
+	if (fileOnDb?.repeated) {
+		uploadedFile = fileOnDb.file;
+		await deleteTmpFile(tempPath);
+	} else {
+		const savedFile = await storeFileToDb(user, file, albumId ? albumId : undefined);
+		uploadedFile = savedFile.file;
 		void generateThumbnails({ filename: savedFile.file.name });
 	}
 
