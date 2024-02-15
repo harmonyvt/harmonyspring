@@ -2,15 +2,15 @@ version: "3.7"
 
 services:
   chibisafe:
-    image: chibisafe/chibisafe:latest
-    container_name: chibisafe
+    image: ghcr.io/harmonyvt/harmonyspring:latest
+    container_name: harmonyspring
     build:
       context: ./
       dockerfile: ./Dockerfile
     volumes:
-      - ./database:/home/node/chibisafe/database:rw
-      - ./uploads:/home/node/chibisafe/uploads:rw
-      - ./logs:/home/node/chibisafe/logs:rw
+      - ./database:/home/node/harmonyspring/database:rw
+      - ./uploads:/home/node/harmonyspring/uploads:rw
+      - ./logs:/home/node/harmonyspring/logs:rw
     ports:
-      - 24424:8000
+      - 731:8000
     restart: unless-stopped

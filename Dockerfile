@@ -4,11 +4,14 @@ USER root
 # Update apk
 RUN apk update
 
+RUN apk add --no-cache python3 && \
+    if [ ! -e /usr/bin/python ]; then ln -sf python3 /usr/bin/python ; fi
+
 # Install ffmpeg
 RUN apk add --no-cache ffmpeg
 
 # Create app directory
-WORKDIR /home/node/chibisafe
+WORKDIR /home/node/harmonyspring
 
 # Copy app source
 COPY packages ./packages
