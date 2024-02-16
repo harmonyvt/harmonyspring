@@ -49,4 +49,14 @@ export default async (log: any) => {
 	});
 
 	log.debug('yt-dlp: OK');
+
+	const ytdlExists = await lookpath('yt-dlp');
+	if (!ytdlExists) {
+		log.error(
+			"chibisafe couldn't find yt-dlp in your path. yt-dlp is needed to download videos, please install it."
+		);
+		process.exit(1);
+	}
+
+	log.debug('yt-dlp: OK');
 };
