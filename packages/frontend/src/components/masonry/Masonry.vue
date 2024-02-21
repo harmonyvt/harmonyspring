@@ -21,6 +21,7 @@
 				>
 					<FileWarningIcon class="text-red-500 w-16 h-16" />
 				</div>
+				<!-- If nsfw blur video or image -->
 				<template v-else-if="isFileImage(file) || isFileVideo(file)">
 					<a
 						v-if="type === 'publicAlbum'"
@@ -33,19 +34,26 @@
 					<img
 						:src="file.thumb"
 						class="cursor-pointer w-full min-w-[160px]"
+						:class="{
+							'blur-md': file.nsfw && !isHovered[file.uuid ?? file.name],
+							unblur: isHovered[file.uuid ?? file.name]
+						}"
 						onerror="this.classList.add('min-h-[160px]');"
 					/>
 
 					<video
 						v-if="isFileVideo(file) && isHovered[file.uuid ?? file.name]"
 						class="preview absolute top-0 left-0 w-full h-full pointer-events-none min-w-[160px]"
+						:class="{
+							'blur-md': file.nsfw && !isHovered[file.uuid ?? file.name],
+							unblur: isHovered[file.uuid ?? file.name]
+						}"
 						autoplay
 						loop
 						muted
 					>
 						<source :src="file.preview" type="video/mp4" />
 					</video>
-
 					<VideoIcon
 						v-if="isFileVideo(file)"
 						class="absolute bottom-1 right-1 w-6 h-6 text-light-100 pointer-events-none"
@@ -128,3 +136,15 @@ function onHover(state: boolean, uuid: string) {
 	isHovered.value[uuid] = state;
 }
 </script>
+
+<style scoped>
+.blur-md {
+	filter: blur(5px);
+	transition: filter 0.3s ease;
+}
+
+.unblur {
+	filter: none;
+	transition: filter 0.3s ease;
+}
+</style>

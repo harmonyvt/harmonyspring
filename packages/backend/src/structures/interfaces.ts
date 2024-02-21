@@ -57,6 +57,7 @@ export interface File {
 	isS3: boolean;
 	isWatched: boolean;
 	name: string;
+	nsfw: boolean;
 	original: string;
 	quarantine: boolean;
 	quarantineFile: {

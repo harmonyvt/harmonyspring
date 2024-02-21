@@ -73,6 +73,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 					name: true
 				}
 			},
+			nsfw: true,
 			isS3: true,
 			isWatched: true
 		},

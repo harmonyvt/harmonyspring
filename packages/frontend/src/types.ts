@@ -36,6 +36,7 @@ export interface File {
 	bytesTotal: number;
 	error?: string;
 	name: string;
+	nsfw: boolean;
 	processing: boolean;
 	progress: number;
 	status: string;
@@ -85,8 +86,8 @@ export interface AlbumForMasonry {
 	count: number;
 	description: string;
 	files: FileWithAdditionalData[];
-	isNsfw: boolean;
 	name: string;
+	nsfw: boolean;
 	uuid: string;
 }
 

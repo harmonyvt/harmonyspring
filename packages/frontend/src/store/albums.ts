@@ -47,7 +47,7 @@ export const useAlbumsStore = defineStore('albums', {
 				name: response.name,
 				description: response.description,
 				files: response.files,
-				isNsfw: response.isNsfw,
+				nsfw: response.nsfw,
 				count: response.count
 			};
 		},

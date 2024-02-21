@@ -196,7 +196,8 @@ const uploadFile = async ({
 				bytesSent: 0,
 				bytesTotal: file.size,
 				progress: 0,
-				url: ''
+				url: '',
+				nsfw: false
 			});
 		},
 		onError: (uuid: string, error: any) => {

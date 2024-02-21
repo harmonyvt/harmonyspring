@@ -37,7 +37,6 @@ export default async (log: any) => {
 	log.debug('yt-dlp: Finding Helper Folder');
 	const HelperFolder = fileURLToPath(new URL(`../../../../helper`, import.meta.url));
 
-	// check if helper folder exists
 	jetpack.dir(HelperFolder);
 
 	log.debug('yt-dlp: Downloading yt-dlp from GitHub');
@@ -47,16 +46,6 @@ export default async (log: any) => {
 		);
 		process.exit(1);
 	});
-
-	log.debug('yt-dlp: OK');
-
-	const ytdlExists = await lookpath('yt-dlp');
-	if (!ytdlExists) {
-		log.error(
-			"chibisafe couldn't find yt-dlp in your path. yt-dlp is needed to download videos, please install it."
-		);
-		process.exit(1);
-	}
 
 	log.debug('yt-dlp: OK');
 };
