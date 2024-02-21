@@ -35,7 +35,6 @@ export const options = {
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	const { uuid } = req.params as { uuid: string };
-	console.log(uuid + ' ' + req.user.id + ' ' + req.body);
 	const { nsfw } = req.body as { nsfw?: boolean };
 	if (nsfw === undefined) {
 		void res.badRequest('No data supplied');
