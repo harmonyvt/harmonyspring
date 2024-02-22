@@ -64,6 +64,7 @@ export interface File {
 		name: string;
 	};
 	size: number;
+	source: string;
 	type: string;
 	userId?: number | null;
 	// id: number;

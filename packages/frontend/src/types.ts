@@ -39,6 +39,7 @@ export interface File {
 	nsfw: boolean;
 	processing: boolean;
 	progress: number;
+	source: string;
 	status: string;
 	type: string;
 	url: string | undefined;

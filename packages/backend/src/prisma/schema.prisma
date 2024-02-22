@@ -37,6 +37,7 @@ model files {
 	name String
 	original String
 	type String
+	source String @default("")
 	size String
 	hash String
 	ip String
