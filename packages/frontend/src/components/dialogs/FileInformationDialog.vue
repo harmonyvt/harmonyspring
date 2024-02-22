@@ -80,6 +80,15 @@
 								>
 									Open
 								</Button>
+								<Button
+									as="a"
+									:href="file.url?.split('/')[0] + '//' + file.url?.split('/')[2] + '/files/' + file.name"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="flex-1 w-full"
+								>
+									Open with Viewer
+								</Button>
 								<ConfirmationDialog
 									title="Delete file"
 									message="The file will be deleted and gone forever with no way to recover it. It will also remove it from any albums that you added it to. Are you sure?"
