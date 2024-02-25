@@ -199,6 +199,16 @@ export const getFile = async (uuid: string) => {
 	}
 };
 
+export const getGuestFile = async (search: string) => {
+	try {
+		const data = await request.get(`/guest/file/${search}`);
+		debug('getFile', data);
+		return data.file;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
+
 export const updateFile = async (uuid: string, setting: any) => {
 	try {
 		console.log('updateFile', uuid, {

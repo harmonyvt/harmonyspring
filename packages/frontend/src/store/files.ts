@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { File } from '@/types';
-import { getFile } from '@/use/api';
+import { getGuestFile } from '@/use/api';
 
 export const publicOnly = ref(false);
 
@@ -11,7 +11,7 @@ export const useFileStore = defineStore('files', {
 	}),
 	actions: {
 		async get(search: string) {
-			const response = await getFile(search);
+			const response = await getGuestFile(search);
 			if (!response) return;
 			this.file = await response;
 		}

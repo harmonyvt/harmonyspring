@@ -170,3 +170,24 @@ model invites {
 	createdAt DateTime @default(now())
 	editedAt DateTime?
 }
+
+model tracks {
+  id Int @id @default(autoincrement())
+  userId Int
+  fileId Int
+  startTime Int
+  title String
+  artist String
+  source String
+  tracklistId Int
+  tracklist tracklists @relation(fields: [tracklistId], references: [id])
+}
+
+model tracklists {
+	id Int @id @default(autoincrement())
+	userId Int
+	name String
+	createdAt DateTime @default(now())
+	editedAt DateTime?
+	tracks tracks[]
+}

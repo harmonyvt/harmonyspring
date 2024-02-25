@@ -82,7 +82,7 @@
 								</Button>
 								<Button
 									as="a"
-									:href="file.url?.split('/')[0] + '//' + file.url?.split('/')[2] + '/files/' + file.name"
+									:href="referrerUrl + '/files/' + file.name"
 									target="_blank"
 									rel="noopener noreferrer"
 									class="flex-1 w-full"
@@ -320,7 +320,7 @@ const fileAlbums = ref<Album[]>([]);
 const fileTags = ref<Tag[]>([]);
 const fileElement = ref<HTMLElement | null>(null);
 const isVerticalImage = ref(false);
-
+const referrerUrl = computed(() => document.referrer);
 const onImageLoad = async () => {
 	if (!fileElement.value) return;
 	await nextTick();

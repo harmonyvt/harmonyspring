@@ -59,7 +59,12 @@
 								<span class="text-sm font-medium">File source:</span
 								><span class="text-sm text-gray-500 dark:text-gray-400">{{ fileInfo.source }}</span>
 							</div>
-							<div class="flex items-center justify-between"></div>
+							<template v-if="fileInfo.type.startsWith('audio')">
+								<div class="flex items-center justify-between">
+									<span class="text-sm font-medium">{{ audioProgress }}</span>
+									<span class="text-sm text-gray-500 dark:text-gray-400">{{ duration }}</span>
+								</div>
+							</template>
 						</div>
 					</div>
 				</main>
@@ -69,20 +74,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+// import { useHead } from '@unhead/vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { Button } from '@/components/ui/button';
 import { useFileStore } from '@/store/files';
 const props = defineProps<{
 	identifier: string;
 }>();
-
 const filesStore = useFileStore();
 const fileInfo = computed(() => filesStore.file);
 const isSidePanelVisible = ref(true);
 const loading = ref(true); // Initialize loading state as true
-
+const audioProgress = ref('00:00' || ({} as Date));
+const duration = ref('00:00' || ({} as Date));
+const source = ref('' || ({} as string));
 onMounted(async () => {
 	await filesStore.get(props.identifier);
+	if (fileInfo.value.source) {
+		source.value = fileInfo.value.source;
+	}
+
 	loading.value = false; // Set loading to false once the data is fetched
+	if (fileInfo.value && fileInfo.value.type.startsWith('audio')) {
+		await nextTick(); // Wait for the next DOM update cycle
+		setupAudioProgressTracking();
+	}
 });
+function setupAudioProgressTracking() {
+	const audioElement = document.querySelector('audio');
+	if (!audioElement) {
+		console.error('Audio element not found');
+		return;
+	}
+
+	audioElement.addEventListener('timeupdate', () => {
+		const formattedProgress = new Date(audioElement.currentTime * 1000).toISOString().slice(14, 19);
+		const formattedDuration = new Date(audioElement.duration * 1000).toISOString().slice(14, 19);
+		audioProgress.value = formattedProgress;
+		duration.value = formattedDuration;
+	});
+}
 </script>
