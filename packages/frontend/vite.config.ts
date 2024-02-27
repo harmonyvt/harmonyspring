@@ -13,7 +13,7 @@ dotenv.config({
 
 // https://lucide.dev/icons/list
 
-const backendUrl = 'https://other.harmony.ngrok.dev/';
+const backendUrl = 'https://other.harmony.ngrok.dev';
 
 export default defineConfig({
 	resolve: {

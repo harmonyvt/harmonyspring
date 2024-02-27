@@ -687,3 +687,13 @@ export const getDiagnosticFile = async () => {
 		sendErrorToast(error.message);
 	}
 };
+
+export const getTracklists = async () => {
+	try {
+		const data = await request.get('trackslist');
+		debug('getTracks', data);
+		return data;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+}

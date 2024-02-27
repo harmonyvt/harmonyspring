@@ -22,16 +22,16 @@ export const schema = {
 };
 
 export const options = {
-	url: '/tracks/:tracklistId',
-	method: 'get'
+	url: '/tracks',
+	method: 'get',
+	middlewares: ['apiKey', 'auth']
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
-	const { tracklistId } = req.params as { tracklistId: number };
-
+	const userId = req.user.id;
 	const tracks = await prisma.tracks.findMany({
 		where: {
-			id: tracklistId
+			userId
 		}
 	});
 

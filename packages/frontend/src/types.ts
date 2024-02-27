@@ -161,3 +161,32 @@ export interface Setting {
 	type: string;
 	value: boolean | number | string;
 }
+
+export interface Track {
+	artist: string;
+	endTime: number;
+	fileId: number;
+	id: number;
+	source: string;
+	startTime: number;
+	title: string;
+	tracklistId: number;
+	userId: number;
+}
+
+export interface TracksResponse {
+	tracks: Track[];
+}
+
+export interface Tracklist {
+	createdAt: Date;
+	editedAt: Date;
+	id: number;
+	name: string;
+	tracklist: Track[];
+	userId: number;
+}
+
+export interface TracklistResponse {
+	tracklist: Tracklist[];
+}

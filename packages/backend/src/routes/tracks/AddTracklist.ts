@@ -2,7 +2,7 @@ import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 import prisma from '@/structures/database.js';
 import type { RequestWithUser } from '@/structures/interfaces.js';
-import { TracklistSchema, TracklistResponseSchema } from '@/structures/schemas/TracksSchema.js';
+import { TracklistSchema } from '@/structures/schemas/TracksSchema.js';
 
 export const schema = {
 	summary: 'Add a tracklist',
@@ -12,7 +12,7 @@ export const schema = {
 	response: {
 		200: z.object({
 			message: z.string(),
-			tracklist: TracklistResponseSchema
+			tracklist: TracklistSchema
 		})
 	}
 };

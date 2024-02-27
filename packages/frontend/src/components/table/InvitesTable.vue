@@ -60,14 +60,14 @@ defineProps<{
 
 const queryClient = useQueryClient();
 
-const { mutate: mutateCancelInvite } = useMutation({
+const { mutate: mutateTracklistsFetch } = useMutation({
 	mutationFn: (code: string) => cancelInvite(code)
 });
 
 const doCancelInvite = async (code: string) => {
-	mutateCancelInvite(code, {
+	mutateTracklistsFetch(code, {
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['invites'] });
+			queryClient.invalidateQueries({ queryKey: ['tracklists'] });
 		}
 	});
 };

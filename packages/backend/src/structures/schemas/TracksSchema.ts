@@ -20,9 +20,10 @@ export const TracklistSchema = z.object({
 	id: z.number(),
 	userId: z.number(),
 	name: z.string(),
-	tracklist: z.array(TrackSchema)
+	createdAt: z.date(),
+	editedAt: z.date(),
 });
 
 export const TracklistResponseSchema = z.object({
-	tracklist: TracklistSchema
+	tracklist: z.array(TracklistSchema)
 });
