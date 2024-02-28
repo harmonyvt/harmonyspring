@@ -145,6 +145,7 @@ export interface Snippet {
 	link: string;
 	name: string;
 	parentUuid: string;
+	private: boolean;
 	raw: string;
 	uuid: string;
 }

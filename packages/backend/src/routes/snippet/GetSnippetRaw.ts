@@ -28,12 +28,18 @@ export const run = async (req: FastifyRequest, res: FastifyReply) => {
 			identifier
 		},
 		select: {
-			content: true
+			content: true,
+			private: true
 		}
 	});
 
 	if (!snippet) {
 		void res.notFound('The snippet could not be found');
+		return;
+	}
+
+	if (snippet.private) {
+		void res.notFound('The snippet is private');
 		return;
 	}
 

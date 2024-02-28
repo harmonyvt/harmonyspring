@@ -70,6 +70,7 @@ model snippets {
 	content String
 	language String
 	parentUuid String?
+	private Boolean @default(false)
 	createdAt DateTime @default(now())
 	editedAt DateTime?
 }

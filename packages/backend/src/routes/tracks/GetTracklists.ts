@@ -23,7 +23,7 @@ export const options = {
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	const userId = req.user.id;
-	
+
 	const tracklists = await prisma.tracklists.findMany({
 		where: {
 			userId

@@ -21,7 +21,7 @@ export const TracklistSchema = z.object({
 	userId: z.number(),
 	name: z.string(),
 	createdAt: z.date(),
-	editedAt: z.date(),
+	editedAt: z.date()
 });
 
 export const TracklistResponseSchema = z.object({

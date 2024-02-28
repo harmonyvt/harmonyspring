@@ -640,6 +640,21 @@ export const getSnippet = async (uuid: string) => {
 	}
 };
 
+export const updateSnippet = async (uuid: string, setting: any) => {
+	try {
+		console.log('updateSnippet', uuid, {
+			_private: setting._private // default to false if nsfw is undefined
+		});
+		const data = await request.post(`snippet/${uuid}/update`, {
+			_private: setting._private
+		});
+		debug('updateSnippet', data);
+		return data;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
+
 export const getPublicSnippet = async (identifier: string) => {
 	try {
 		const data = await request.get(`snippet/public/${identifier}`);
@@ -696,4 +711,4 @@ export const getTracklists = async () => {
 	} catch (error: any) {
 		sendErrorToast(error.message);
 	}
-}
+};

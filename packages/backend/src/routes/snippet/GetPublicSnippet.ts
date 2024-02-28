@@ -39,12 +39,19 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		select: {
 			content: true,
 			language: true,
-			name: true
+			name: true,
+			private: true
 		}
 	});
 
 	if (!snippet) {
 		void res.notFound('The snippet could not be found');
+		return;
+	}
+
+	// If the snippet is private, don't return it
+	if (snippet.private) {
+		void res.notFound('The snippet are private');
 		return;
 	}
 

@@ -22,7 +22,8 @@ export const schema = {
 				language: z.string().describe('The language of the snippet.'),
 				raw: z.string().describe('The direct link to the snippet.'),
 				link: z.string().describe('The link to the snippet.'),
-				createdAt: z.date().describe('The date the snippet was created.')
+				createdAt: z.date().describe('The date the snippet was created.'),
+				private: z.boolean().describe('Whether the snippet is private or not.')
 			})
 		}),
 		'4xx': http4xxErrorSchema,
@@ -52,12 +53,19 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			parentUuid: true,
 			uuid: true,
 			identifier: true,
-			createdAt: true
+			createdAt: true,
+			private: true,
+			userId: true
 		}
 	});
 
 	if (!snippet) {
 		void res.notFound('The snippet could not be found');
+		return;
+	}
+
+	if (snippet.private && req.user.id !== snippet.userId) {
+		void res.forbidden('You do not have permission to view this snippet');
 		return;
 	}
 
