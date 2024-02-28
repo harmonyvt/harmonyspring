@@ -28,7 +28,7 @@ export const schema = {
 			album: z.object({
 				name: z.string().describe('The name of the album.'),
 				description: z.string().describe('The description of the album.'),
-				isNsfw: z.boolean().describe('Whether or not the album is NSFW.'),
+				nsfw: z.boolean().describe('Whether or not the album is NSFW.'),
 				count: z.number().describe('The amount of files in the album.'),
 				files: z.array(
 					z.object({
@@ -140,7 +140,7 @@ export const run = async (req: FastifyRequest, res: FastifyReply) => {
 			name: album.name,
 			description: album.description,
 			files,
-			isNsfw: album.nsfw,
+			nsfw: album.nsfw,
 			count: album._count.files
 		}
 	});

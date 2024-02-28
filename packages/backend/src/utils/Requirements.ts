@@ -24,6 +24,13 @@ export default async (log: any) => {
 
 	const YTDLP = YTDlpWrap.default;
 
+	// check if yt-dlp file exists
+	const ytDlpExists = jetpack.exists(fileURLToPath(new URL(`../../../../helper/yt-dlp`, import.meta.url)));
+	if (ytDlpExists) {
+		log.debug('yt-dlp: OK');
+		return;
+	}
+
 	log.debug('yt-dlp: Fetching latest release from GitHub');
 	const githubReleasesData = await YTDLP.getGithubReleases(1, 5);
 
@@ -37,7 +44,6 @@ export default async (log: any) => {
 	log.debug('yt-dlp: Finding Helper Folder');
 	const HelperFolder = fileURLToPath(new URL(`../../../../helper`, import.meta.url));
 
-	// check if helper folder exists
 	jetpack.dir(HelperFolder);
 
 	log.debug('yt-dlp: Downloading yt-dlp from GitHub');

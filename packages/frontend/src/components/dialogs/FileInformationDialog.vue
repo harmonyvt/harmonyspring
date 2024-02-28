@@ -80,6 +80,15 @@
 								>
 									Open
 								</Button>
+								<Button
+									as="a"
+									:href="referrerUrl + '/files/' + file.name"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="flex-1 w-full"
+								>
+									Open with Viewer
+								</Button>
 								<ConfirmationDialog
 									title="Delete file"
 									message="The file will be deleted and gone forever with no way to recover it. It will also remove it from any albums that you added it to. Are you sure?"
@@ -171,6 +180,14 @@
 								label="Uploaded"
 								readOnly
 							/>
+							<!-- NSFW switch -->
+							<div class="relative rounded-md bg-dark-100 border border-dark-80 px-3 py-2 shadow-sm">
+								<label
+									class="absolute -top-2 left-2 -mt-px pointer-events-none inline-block bg-dark-100 px-1 text-xs font-medium text-light-100"
+									>NSFW
+								</label>
+								<Switch id="nsfw" :checked="isNsfw" @click="setNsfw" />
+							</div>
 						</div>
 
 						<!-- Albums section -->
@@ -277,9 +294,11 @@ import {
 	regenerateThumbnail,
 	getTags,
 	addFileToTag,
-	removeFileFromTag
+	removeFileFromTag,
+	updateFile
 } from '~/use/api';
 import { formatBytes, isFileVideo, isFileImage, isFileAudio } from '~/use/file';
+import { Switch } from '../ui/switch';
 
 interface Props {
 	file: FileWithAdditionalData;
@@ -290,6 +309,8 @@ const props = withDefaults(defineProps<Props>(), {
 	type: 'uploads'
 });
 
+// eslint-disable-next-line vue/no-setup-props-destructure
+const isNsfw = ref(props.file.nsfw);
 const slots = useSlots();
 const hasDefaultSlot = computed(() => Boolean(slots.default));
 
@@ -299,7 +320,7 @@ const fileAlbums = ref<Album[]>([]);
 const fileTags = ref<Tag[]>([]);
 const fileElement = ref<HTMLElement | null>(null);
 const isVerticalImage = ref(false);
-
+const referrerUrl = computed(() => document.referrer);
 const onImageLoad = async () => {
 	if (!fileElement.value) return;
 	await nextTick();
@@ -427,6 +448,12 @@ const doRegenerateThumbnail = () => {
 //		}
 //	});
 // };
+const setNsfw = async () => {
+	isNsfw.value = !isNsfw.value;
+	await updateFile(props.file.uuid, {
+		nsfw: isNsfw.value
+	});
+};
 
 const { data: tags } = useQuery({
 	queryKey: ['tags'],

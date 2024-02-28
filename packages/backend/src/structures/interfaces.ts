@@ -57,12 +57,14 @@ export interface File {
 	isS3: boolean;
 	isWatched: boolean;
 	name: string;
+	nsfw: boolean;
 	original: string;
 	quarantine: boolean;
 	quarantineFile: {
 		name: string;
 	};
 	size: number;
+	source: string;
 	type: string;
 	userId?: number | null;
 	// id: number;
@@ -170,4 +172,31 @@ export interface UploadResult {
 	thumb?: string;
 	url?: string;
 	uuid: string;
+}
+export interface GuestParsedFile {
+	isS3: boolean;
+	isWatched: boolean;
+	name: string;
+	preview: string;
+	source: string;
+	thumb: string;
+	thumbSquare: string;
+	type: string;
+	url: string;
+}
+
+export interface Track {
+	artist: string;
+	endTime: number;
+	fileId: number;
+	id: number;
+	source: string;
+	startTime: number;
+	title: string;
+	tracklistId: number;
+	userId: number;
+}
+
+export interface TracksResponse {
+	tracks: Track[];
 }

@@ -42,6 +42,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			name: true,
 			quarantine: true,
 			quarantineFile: true,
+			nsfw: true,
 			isS3: true,
 			isWatched: true
 		}

@@ -22,7 +22,7 @@
 		"@types/marked": "^6.0.0",
 		"@unhead/vue": "^1.8.10",
 		"@vueuse/components": "^10.7.2",
-		"@vueuse/core": "^10.7.2",
+		"@vueuse/core": "^10.8.0",
 		"cross-env": "^7.0.3",
 		"dayjs": "^1.11.10",
 		"dotenv": "^16.4.1",

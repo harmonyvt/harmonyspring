@@ -117,7 +117,8 @@ import {
 	CodeIcon,
 	KeyRoundIcon,
 	NetworkIcon,
-	TagsIcon
+	TagsIcon,
+	AudioWaveformIcon
 } from 'lucide-vue-next';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -167,7 +168,8 @@ const navigation = {
 		{ name: 'Uploads', href: '/dashboard/uploads', icon: FileUpIcon },
 		{ name: 'Albums', href: '/dashboard/albums', icon: LibraryIcon },
 		{ name: 'Tags', href: '/dashboard/tags', icon: TagsIcon },
-		{ name: 'Snippets', href: '/dashboard/snippets', icon: CodeIcon }
+		{ name: 'Snippets', href: '/dashboard/snippets', icon: CodeIcon },
+		{ name: 'Tracks', href: '/dashboard/tracks', icon: AudioWaveformIcon }
 	],
 	Account: [{ name: 'Credentials', href: '/dashboard/account', icon: KeyRoundIcon }],
 	Admin: [

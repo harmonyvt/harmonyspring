@@ -17,7 +17,7 @@ export const schema = {
 			message: responseMessageSchema,
 			name: z.string().describe('The name of the album.'),
 			description: z.string().nullable().describe('The description of the album.'),
-			isNsfw: z.boolean().describe('Whether or not the album is nsfw.'),
+			nsfw: z.boolean().describe('Whether or not the album is nsfw.'),
 			count: z.number().describe('The number of files in the album.'),
 			files: z.array(fileAsUserSchema)
 		}),
@@ -94,7 +94,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		name: album.name,
 		description: album.description,
 		files,
-		isNsfw: album.nsfw,
+		nsfw: album.nsfw,
 		count: album._count.files
 	});
 };

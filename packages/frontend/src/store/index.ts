@@ -5,3 +5,4 @@ export { useTagsStore } from './tags';
 export { useUploadsStore } from './uploads';
 export { useUserStore } from './user';
 export { useUpdateStore } from './updateCheck';
+export { useFileStore } from './files';

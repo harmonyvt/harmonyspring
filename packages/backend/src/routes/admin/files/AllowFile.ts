@@ -46,6 +46,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		select: {
 			uuid: true,
 			name: true,
+			nsfw: true,
 			isS3: true,
 			isWatched: true,
 			quarantineFile: true

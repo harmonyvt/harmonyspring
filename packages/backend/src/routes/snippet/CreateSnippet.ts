@@ -16,16 +16,20 @@ export const schema = {
 	body: z.object({
 		name: z.string().optional().describe('The name of the snippet.'),
 		content: z.string().describe('The content of the snippet.'),
-		language: z.string().optional().describe('The language of the snippet.')
+		language: z.string().optional().describe('The language of the snippet.'),
+		private: z.boolean().optional().describe('Whether the snippet is private or not.')
 	}),
 	response: {
 		200: z.object({
 			message: responseMessageSchema,
-			snippet: z.object({
-				uuid: z.string().describe('The uuid of the snippet.'),
-				raw: z.string().describe('The raw link to the snippet.'),
-				link: z.string().describe('The link to the snippet.')
-			})
+			snippet: z
+				.object({
+					uuid: z.string().describe('The uuid of the snippet.'),
+					raw: z.string().describe('The raw link to the snippet.'),
+					link: z.string().describe('The link to the snippet.')
+				})
+				.optional()
+				.describe('The snippet.')
 		}),
 		'4xx': http4xxErrorSchema,
 		'5xx': http5xxErrorSchema
@@ -47,7 +51,12 @@ export const options = {
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
-	const { name, content, language } = req.body as { content: string; language: string; name: string };
+	const { name, content, language, _private } = req.body as {
+		_private: boolean;
+		content: string;
+		language: string;
+		name: string;
+	};
 
 	const now = moment.utc().toDate();
 	const uniqueIdentifier = await getUniqueSnippetIdentifier();
@@ -66,9 +75,16 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			userId: req.user?.id,
 			uuid: uuidv4(),
 			createdAt: now,
-			editedAt: now
+			editedAt: now,
+			private: _private
 		}
 	});
+
+	if (_private) {
+		return res.send({
+			message: 'Successfully created snippet'
+		});
+	}
 
 	const publicLink = constructSnippetPublicLink(req, uniqueIdentifier);
 

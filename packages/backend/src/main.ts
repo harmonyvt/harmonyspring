@@ -57,7 +57,6 @@ Sentry.startSpan(
 	},
 	() => {}
 );
-
 const watcher = getFileWatcher();
 
 let htmlBuffer: Buffer | null = null;
@@ -88,8 +87,8 @@ process.on('unhandledRejection', error => {
 });
 
 const start = async () => {
-	server.log.info(`Running Chibisafe v${VERSION}`);
-	// Check the environment has all the requirements before running chibisafe
+	server.log.info(`Running Harmonyspring v${VERSION}`);
+	// Check the environment has all the requirements before running harmonyspring
 	await Requirements(server.log);
 
 	// Create the settings in the database
@@ -183,7 +182,7 @@ const start = async () => {
 	// Chokidar implementation
 	fileWatcher();
 
-	server.log.debug('Chibisafe is starting with the following configuration:');
+	server.log.debug('Harmonyspring is starting with the following configuration:');
 	server.log.debug('');
 
 	const defaults = SETTINGS;

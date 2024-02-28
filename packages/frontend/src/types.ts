@@ -36,8 +36,10 @@ export interface File {
 	bytesTotal: number;
 	error?: string;
 	name: string;
+	nsfw: boolean;
 	processing: boolean;
 	progress: number;
+	source: string;
 	status: string;
 	type: string;
 	url: string | undefined;
@@ -85,8 +87,8 @@ export interface AlbumForMasonry {
 	count: number;
 	description: string;
 	files: FileWithAdditionalData[];
-	isNsfw: boolean;
 	name: string;
+	nsfw: boolean;
 	uuid: string;
 }
 
@@ -143,6 +145,7 @@ export interface Snippet {
 	link: string;
 	name: string;
 	parentUuid: string;
+	private: boolean;
 	raw: string;
 	uuid: string;
 }
@@ -158,4 +161,33 @@ export interface Setting {
 	notice?: string;
 	type: string;
 	value: boolean | number | string;
+}
+
+export interface Track {
+	artist: string;
+	endTime: number;
+	fileId: number;
+	id: number;
+	source: string;
+	startTime: number;
+	title: string;
+	tracklistId: number;
+	userId: number;
+}
+
+export interface TracksResponse {
+	tracks: Track[];
+}
+
+export interface Tracklist {
+	createdAt: Date;
+	editedAt: Date;
+	id: number;
+	name: string;
+	tracklist: Track[];
+	userId: number;
+}
+
+export interface TracklistResponse {
+	tracklist: Tracklist[];
 }

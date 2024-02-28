@@ -14,7 +14,7 @@ export const schema = {
 	tags: ['Files'],
 	params: z
 		.object({
-			uuid: z.string().describe('The uuid of the file.')
+			search: z.string().describe('The uuid or name of the file.')
 		})
 		.required(),
 	response: {
@@ -28,18 +28,18 @@ export const schema = {
 };
 
 export const options = {
-	url: '/file/:uuid',
+	url: '/file/:search',
 	method: 'get',
 	middlewares: ['apiKey', 'auth']
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
-	const { uuid } = req.params as { uuid: string };
-
+	const { search } = req.params as { search: string };
+	console.log('uuid', search);
 	// Make sure the file exists and belongs to the user
-	const file = (await prisma.files.findFirst({
+	let file = (await prisma.files.findFirst({
 		where: {
-			uuid,
+			uuid: search,
 			userId: req.user.id
 		},
 		include: {
@@ -65,7 +65,38 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	})) as ExtendedFile | null;
 
 	if (!file) {
-		void res.notFound('The file could not be found');
+		// retry but search with uuid as file name
+		file = (await prisma.files.findFirst({
+			where: {
+				name: search,
+				userId: req.user.id
+			},
+			include: {
+				albums: {
+					select: {
+						uuid: true,
+						name: true
+					},
+					orderBy: {
+						id: 'desc'
+					}
+				},
+				tags: {
+					select: {
+						uuid: true,
+						name: true
+					},
+					orderBy: {
+						id: 'desc'
+					}
+				}
+			}
+		})) as ExtendedFile | null;
+		console.log(file?.type);
+	}
+
+	if (!file) {
+		void res.notFound("The file doesn't exist or doesn't belong to the user");
 		return;
 	}
 

@@ -95,15 +95,3 @@ export const createAdminUserIfNotExists = async () => {
 		log.info('>>>');
 	}
 };
-
-// A function that checks if the URL is valid and removes any dangling query parameters, returning the URL without
-export const validateURL = (url: string) => {
-	try {
-		const parsed = new URL(url);
-		log.info(`Validated URL: ${parsed.origin + parsed.pathname}`);
-		return new URL(parsed.origin + parsed.pathname);
-	} catch {
-		log.error('Unable to validate URL, returning URL without removing query parameters');
-		return new URL(url);
-	}
-};

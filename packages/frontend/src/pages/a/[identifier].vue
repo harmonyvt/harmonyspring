@@ -9,7 +9,7 @@
 				{{ albumInfo?.description }}
 			</h2>
 
-			<div v-if="albumInfo?.isNsfw && !enableNsfw" class="text-light-100 w-full flex flex-col mt-24 text-center">
+			<div v-if="albumInfo?.nsfw && !enableNsfw" class="text-light-100 w-full flex flex-col mt-24 text-center">
 				<h2>This album is NSFW, to view the contents click on the button below</h2>
 				<Button variant="primary" class="mt-8" @click="enableNsfw = true">Show content</Button>
 			</div>

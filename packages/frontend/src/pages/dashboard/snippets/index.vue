@@ -22,6 +22,15 @@
 						<div class="mb-2">
 							<p class="text-light-100">Name: {{ snippet.name }}</p>
 							<p class="text-light-100">Created: {{ dayjs(snippet.createdAt).fromNow() }}</p>
+							<label
+								class="pointer-events-none inline-block bg-dark-100 px-1 text-xs font-medium text-light-100"
+								>{{ snippet.private ? 'Private' : 'Public' }}
+							</label>
+							<Switch
+								:id="'private-' + snippet.uuid"
+								:checked="snippet.private"
+								@click="setPrivate(snippet.uuid, snippet.private)"
+							/>
 						</div>
 						<div class="flex-1"></div>
 						<div class="mb-2">
@@ -62,21 +71,21 @@
 </template>
 
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query';
+import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { computed } from 'vue';
 import TextEditorDialog from '@/components/dialogs/TextEditorDialog.vue';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import Breadcrumbs from '~/components/breadcrumbs/Breadcrumbs.vue';
 import Highlight from '~/components/highlight/Highlight.vue';
 import type { Snippet } from '~/types';
-import { getSnippets } from '~/use/api';
+import { getSnippets, updateSnippet } from '~/use/api';
 dayjs.extend(relativeTime);
-
 const snippets = computed(() => data.value);
-
+const queryClient = useQueryClient();
 const { data } = useQuery({
 	queryKey: ['snippets'],
 	queryFn: async () => {
@@ -89,4 +98,11 @@ const { data } = useQuery({
 	},
 	placeholderData: (previousData: any) => previousData
 });
+
+const setPrivate = async (uuid: string, currentStatus: boolean) => {
+	await updateSnippet(uuid, {
+		_private: !currentStatus
+	});
+	queryClient.invalidateQueries({ queryKey: ['snippets'] });
+};
 </script>

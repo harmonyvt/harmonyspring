@@ -1,7 +1,7 @@
 version: "3.7"
 
 services:
-  chibisafe:
+  harmonyspring:
     image: ghcr.io/harmonyvt/harmonyspring:latest
     container_name: harmonyspring
     build:

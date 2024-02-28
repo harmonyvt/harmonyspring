@@ -1,4 +1,5 @@
 import { toast } from 'vue-sonner';
+import type { File } from '@/types';
 import { debug } from '~/use/log';
 import { request } from './fetch';
 
@@ -147,9 +148,10 @@ export const getFiles = async (page: number, limit = 50) => {
 	try {
 		const data = await request.get(`files?page=${page}&limit=${limit}`);
 		debug('getFiles', data);
-		return data;
+		return data as File;
 	} catch (error: any) {
 		sendErrorToast(error.message);
+		return [];
 	}
 };
 
@@ -192,6 +194,31 @@ export const getFile = async (uuid: string) => {
 		const data = await request.get(`file/${uuid}`);
 		debug('getFile', data);
 		return data.file;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
+
+export const getGuestFile = async (search: string) => {
+	try {
+		const data = await request.get(`/guest/file/${search}`);
+		debug('getFile', data);
+		return data.file;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
+
+export const updateFile = async (uuid: string, setting: any) => {
+	try {
+		console.log('updateFile', uuid, {
+			nsfw: setting.nsfw // default to false if nsfw is undefined
+		});
+		const data = await request.post(`file/${uuid}/update`, {
+			nsfw: setting.nsfw
+		});
+		debug('updateFileNSFW', data);
+		return data;
 	} catch (error: any) {
 		sendErrorToast(error.message);
 	}
@@ -613,6 +640,21 @@ export const getSnippet = async (uuid: string) => {
 	}
 };
 
+export const updateSnippet = async (uuid: string, setting: any) => {
+	try {
+		console.log('updateSnippet', uuid, {
+			_private: setting._private // default to false if nsfw is undefined
+		});
+		const data = await request.post(`snippet/${uuid}/update`, {
+			_private: setting._private
+		});
+		debug('updateSnippet', data);
+		return data;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
+
 export const getPublicSnippet = async (identifier: string) => {
 	try {
 		const data = await request.get(`snippet/public/${identifier}`);
@@ -655,6 +697,16 @@ export const getDiagnosticFile = async () => {
 	try {
 		const data = await request.get('admin/service/diagnostic');
 		debug('getDiagnosticFile', data);
+		return data;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
+
+export const getTracklists = async () => {
+	try {
+		const data = await request.get('trackslist');
+		debug('getTracks', data);
 		return data;
 	} catch (error: any) {
 		sendErrorToast(error.message);
