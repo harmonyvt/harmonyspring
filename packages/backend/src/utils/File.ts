@@ -345,7 +345,8 @@ export const storeFileToDb = async (
 		isS3: file.isS3,
 		isWatched: file.isWatched,
 		createdAt: now,
-		editedAt: now
+		editedAt: now,
+		source: file.source ?? ''
 	};
 
 	if (albumId && albumId !== null && albumId !== undefined) {
@@ -448,7 +449,8 @@ export const uploadFilefromURL = async ({
 		hash: await hashFile(newPath),
 		ip,
 		isS3: false,
-		isWatched: false
+		isWatched: false,
+		source: url
 	};
 
 	let uploadedFile;
@@ -571,7 +573,8 @@ export const handleUploadFile = async ({
 		hash: await hashFile(upload.path),
 		ip,
 		isS3: false,
-		isWatched: false
+		isWatched: false,
+		source: ''
 	};
 
 	let uploadedFile;
@@ -655,7 +658,8 @@ export const YTDLPFilefromURL = async ({
 		hash: await hashFile(newPath),
 		ip,
 		isS3: false,
-		isWatched: false
+		isWatched: false,
+		source: url
 	};
 
 	let uploadedFile;

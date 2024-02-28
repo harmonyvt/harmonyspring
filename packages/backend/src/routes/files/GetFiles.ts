@@ -72,7 +72,6 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 
 	const readyFiles = [];
 	for (const file of files) {
-		console.log(file.nsfw);
 		readyFiles.push({
 			...file,
 			...constructFilePublicLink({ req, fileName: file.name, isS3: file.isS3, isWatched: file.isWatched })

@@ -54,6 +54,7 @@ export interface FileWithAdditionalData extends File {
 	preview?: string;
 	quarantine: boolean;
 	size: number;
+	source: string;
 	thumb: string;
 	user?: {
 		createdAt: number;

@@ -47,7 +47,8 @@ export const fileWatcher = () => {
 			// @ts-ignore
 			ip: '127.0.0.1',
 			isS3: false,
-			isWatched: true
+			isWatched: true,
+			source: ''
 		};
 
 		const fileOnDb = await checkFileNameOnDB({ id: 1 } as any, name);

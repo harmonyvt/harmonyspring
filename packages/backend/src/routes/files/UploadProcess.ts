@@ -98,7 +98,8 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		hash,
 		ip: req.ip,
 		isS3: true,
-		isWatched: false
+		isWatched: false,
+		source: ''
 	};
 
 	let uploadedFile;

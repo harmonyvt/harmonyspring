@@ -35,7 +35,6 @@ export const options = {
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	const { search } = req.params as { search: string };
-	console.log('uuid', search);
 	// Make sure the file exists and belongs to the user
 	let file = (await prisma.files.findFirst({
 		where: {
@@ -92,7 +91,6 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 				}
 			}
 		})) as ExtendedFile | null;
-		console.log(file?.type);
 	}
 
 	if (!file) {

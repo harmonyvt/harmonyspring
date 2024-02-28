@@ -42,10 +42,6 @@ const token = computed(() => userStore.user.token);
 const isLoggedIn = computed(() => userStore.user.loggedIn);
 const url = ref('');
 const fetchRequest = async () => {
-	console.log(url.value);
-
-	// post to upload/url with { url: url.value }
-
 	const result = fetch('/api/upload/url', {
 		method: 'POST',
 		headers: {
@@ -55,8 +51,6 @@ const fetchRequest = async () => {
 		body: JSON.stringify({ url: url.value })
 	});
 
-	await result.then(res => {
-		console.log(res);
-	});
+	await result;
 };
 </script>

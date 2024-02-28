@@ -29,7 +29,6 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			userId
 		}
 	});
-	console.log(tracklists);
 	void res.send({
 		message: 'Tracklist fetched successfully',
 		tracklists

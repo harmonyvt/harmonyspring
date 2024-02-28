@@ -180,8 +180,15 @@
 								label="Uploaded"
 								readOnly
 							/>
+							<InputWithOverlappingLabel
+								:value="source || ''"
+								class="mt-4"
+								label="source"
+								type="link"
+								:href="source || ''"
+							/>
 							<!-- NSFW switch -->
-							<div class="relative rounded-md bg-dark-100 border border-dark-80 px-3 py-2 shadow-sm">
+							<div class="relative rounded-md bg-dark-100 border border-dark-80 px-3 py-3 shadow-sm">
 								<label
 									class="absolute -top-2 left-2 -mt-px pointer-events-none inline-block bg-dark-100 px-1 text-xs font-medium text-light-100"
 									>NSFW
@@ -321,6 +328,7 @@ const fileTags = ref<Tag[]>([]);
 const fileElement = ref<HTMLElement | null>(null);
 const isVerticalImage = ref(false);
 const referrerUrl = computed(() => document.referrer);
+const source = ref<string | null>(null);
 const onImageLoad = async () => {
 	if (!fileElement.value) return;
 	await nextTick();
@@ -360,6 +368,7 @@ const getFileInformation = async () => {
 	const file = await getFile(props.file.uuid);
 	fileAlbums.value = file.albums;
 	fileTags.value = file.tags;
+	source.value = file.source;
 };
 
 const albumsForCombobox = computed(() => {

@@ -14,7 +14,8 @@ export const fileAsUserSchema = z
 		thumb: z.string().describe('The URL of the thumbnail of the file.'),
 		thumbSquare: z.string().describe('The URL of the square thumbnail of the file.'),
 		preview: z.string().describe('The URL of the preview of the file.'),
-		quarantine: z.boolean().optional().describe('Whether the file is quarantined.'),
-		nsfw: z.boolean().optional().describe('Whether the file is NSFW.')
+		nsfw: z.boolean().optional().describe('Whether the file is NSFW.'),
+		source: z.string().describe('The source of the file.').optional(),
+		quarantine: z.boolean().optional().describe('Whether the file is quarantined.')
 	})
-	.describe('The file object.');
+	.describe('The file object');

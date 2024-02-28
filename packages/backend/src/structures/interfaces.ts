@@ -46,6 +46,7 @@ export interface FileInProgress {
 	original: string;
 	path: string;
 	size: string;
+	source: string;
 	type: string;
 }
 
