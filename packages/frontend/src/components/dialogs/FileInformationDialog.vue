@@ -82,7 +82,7 @@
 								</Button>
 								<Button
 									as="a"
-									:href="referrerUrl + '/files/' + file.name"
+									:href="referrerUrl + '/viewer/' + file.name"
 									target="_blank"
 									rel="noopener noreferrer"
 									class="flex-1 w-full"
