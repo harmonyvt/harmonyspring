@@ -70,28 +70,8 @@
 							>
 								{{ item.name }}
 							</Button>
-							<div
-								v-if="isAdmin && updateCheck?.updateAvailable"
-								class="mt-1 space-y-1 p-2 flex flex-col justify-center items-center text-light-100 bg-dark-85 text-xs"
-							>
-								<div class="text-center">
-									New version available
-									<a
-										:href="updateCheck.latestVersionUrl"
-										target="_blank"
-										rel="noopener noreferrer"
-										class="text-blue-400 hover:text-blue-500 cursor-pointer"
-										>v{{ updateCheck.latestVersion }}</a
-									>
-								</div>
-								<ReleaseNotesDialog :data="updateCheck?.releaseNotes || []">
-									<span class="text-blue-400 hover:text-blue-500 cursor-pointer">
-										See what's new
-									</span>
-								</ReleaseNotesDialog>
-							</div>
 							<span class="text-light-100 justify-center flex !mt-4 text-sm pointer-events-none"
-								>chibisafe v{{ VERSION }}</span
+								>harmonyspring</span
 							>
 						</div>
 					</div>
@@ -102,7 +82,6 @@
 </template>
 
 <script setup lang="ts">
-import { saveAs } from 'file-saver';
 import {
 	HomeIcon,
 	FileUpIcon,
@@ -124,7 +103,6 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import ReleaseNotesDialog from '~/components/dialogs/ReleaseNotesDialog.vue';
 import { useUserStore, useSettingsStore, useUpdateStore } from '~/store';
 
 const route = useRoute();
@@ -134,14 +112,8 @@ const settingsStore = useSettingsStore();
 const updateStore = useUpdateStore();
 
 const isOpen = ref(false);
-// @ts-ignore
-// eslint-disable-next-line no-undef
-const VERSION = PACKAGE_VERSION;
 
 const isAdmin = computed(() => userStore.user.roles?.find(role => role.name === 'admin'));
-const apiKey = computed(() => userStore.user.apiKey);
-
-const updateCheck = computed(() => updateStore.updateCheck);
 const currentPath = computed(() => route.path);
 const navigationForUser = computed(() => {
 	if (isAdmin.value) return navigation;
@@ -183,44 +155,11 @@ const navigation = {
 	]
 };
 
-const links = [
-	{ name: 'GitHub', href: 'https://github.com/chibisafe/chibisafe' },
-	{ name: 'Discord', href: 'https://discord.gg/5g6vgwn' },
-	{ name: 'Patreon', href: 'https://www.patreon.com/pitu' },
-	{ name: 'Browser extension', href: 'https://github.com/chibisafe/chibisafe-extension' },
-	{ name: 'Documentation', href: '/docs' },
-	{ name: 'Get ShareX config', href: '#', onClick: (event: MouseEvent) => void getShareXConfig(event) },
-	{ name: 'Log out', href: '#', onClick: (event: MouseEvent) => void logout(event) }
-];
+const links = [{ name: 'Log out', href: '#', onClick: (event: MouseEvent) => void logout(event) }];
 
 const logout = async (event: MouseEvent) => {
 	event.preventDefault();
 	await router.push('/');
 	userStore.logout();
-};
-
-const getShareXConfig = async (event: MouseEvent) => {
-	event.preventDefault();
-	if (!apiKey.value) {
-		// eslint-disable-next-line no-alert
-		window.alert('You need to generate an API key first!');
-		return;
-	}
-
-	const sharexFile = `{
-		"Name": "chibisafe",
-		"DestinationType": "ImageUploader, FileUploader",
-		"RequestType": "POST",
-		"RequestURL": "${location.origin}/api/upload",
-		"FileFormName": "file[]",
-		"Headers": {
-			"x-api-key": "${apiKey.value}"
-		},
-		"ResponseType": "Text",
-		"URL": "$json:url$",
-		"ThumbnailURL": "$json:thumb$"
-	}`;
-	const sharexBlob = new Blob([sharexFile], { type: 'application/octet-binary' });
-	saveAs(sharexBlob, `${location.hostname}.sxcu`);
 };
 </script>
