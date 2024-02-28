@@ -87,7 +87,7 @@
 									rel="noopener noreferrer"
 									class="flex-1 w-full"
 								>
-									Open with Viewer
+									Open media viewer
 								</Button>
 								<ConfirmationDialog
 									title="Delete file"
