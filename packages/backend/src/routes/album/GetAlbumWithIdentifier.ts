@@ -13,11 +13,6 @@ export const schema = {
 	summary: 'Get public album',
 	description: 'Gets a public album link with its contents',
 	tags: ['Albums'],
-	params: z
-		.object({
-			identifier: z.string().describe('The identifier of the link used to access the album.')
-		})
-		.required(),
 	query: z.object({
 		page: queryPageSchema,
 		limit: queryLimitSchema
@@ -27,7 +22,7 @@ export const schema = {
 			message: responseMessageSchema,
 			album: z.object({
 				name: z.string().describe('The name of the album.'),
-				description: z.string().describe('The description of the album.'),
+				description: z.string().nullable().describe('The description of the album.'),
 				nsfw: z.boolean().describe('Whether or not the album is NSFW.'),
 				count: z.number().describe('The amount of files in the album.'),
 				files: z.array(
@@ -54,6 +49,7 @@ export const options = {
 
 export const run = async (req: FastifyRequest, res: FastifyReply) => {
 	const { identifier } = req.params as { identifier: string };
+	console.log('identifier', identifier);
 
 	// Set up pagination options
 	const { page = 1, limit = 50 } = req.query as { limit?: number; page?: number };
@@ -123,6 +119,10 @@ export const run = async (req: FastifyRequest, res: FastifyReply) => {
 		});
 	}
 
+	if (files.length === 0) {
+		void res.notFound('The album is empty');
+		return;
+	}
 	// await prisma.links.update({
 	// 	where: {
 	// 		identifier

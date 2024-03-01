@@ -238,7 +238,8 @@ const start = async () => {
 				'/privacy',
 				'/tos',
 				'/a/',
-				'/s/'
+				'/s/',
+				'/viewer/'
 			];
 
 			const route = routes.some(r => req.url.startsWith(r));

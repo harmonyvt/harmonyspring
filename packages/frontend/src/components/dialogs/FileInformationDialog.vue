@@ -55,6 +55,13 @@
 						</media-control-bar>
 					</media-controller>
 
+					<img
+						v-if="isFileImage(file)"
+						ref="fileElement"
+						:src="file.url"
+						class="h-full object-contain hidden md:block"
+						@load="onImageLoad"
+					/>
 					<span v-else class="text-light-100 h-full items-center hidden md:flex"
 						>Sorry but this file can't be previewed at this time.</span
 					>
@@ -82,14 +89,14 @@
 								</Button>
 								<Button
 									as="a"
-									:href="referrerUrl + '/viewer/' + file.name"
+									:href="'/viewer/' + file.name"
 									target="_blank"
 									rel="noopener noreferrer"
 									class="flex-1 w-full"
 								>
-									Open media viewer
+									Viewer
 								</Button>
-								<ConfirmationDialog
+							<ConfirmationDialog
 									title="Delete file"
 									message="The file will be deleted and gone forever with no way to recover it. It will also remove it from any albums that you added it to. Are you sure?"
 									proceedText="Delete"
@@ -106,6 +113,9 @@
 								>
 									<Button>Regenerate thumbnail</Button></ConfirmationDialog
 								>
+								<Button class="flex-1" @click="copySource">{{
+									isCopyingSource ? 'Copied!' : 'Copy source'
+								}}</Button>
 								<Button as="a" :href="file.url" :download="file.original" class="flex-1">
 									Download
 								</Button>
@@ -179,13 +189,6 @@
 								class="mt-4"
 								label="Uploaded"
 								readOnly
-							/>
-							<InputWithOverlappingLabel
-								:value="source || ''"
-								class="mt-4"
-								label="source"
-								type="link"
-								:href="source || ''"
 							/>
 							<!-- NSFW switch -->
 							<div class="relative rounded-md bg-dark-100 border border-dark-80 px-3 py-3 shadow-sm">
@@ -327,7 +330,6 @@ const fileAlbums = ref<Album[]>([]);
 const fileTags = ref<Tag[]>([]);
 const fileElement = ref<HTMLElement | null>(null);
 const isVerticalImage = ref(false);
-const referrerUrl = computed(() => document.referrer);
 const source = ref<string | null>(null);
 const onImageLoad = async () => {
 	if (!fileElement.value) return;
@@ -382,6 +384,7 @@ const albumsForCombobox = computed(() => {
 
 const { copy } = useClipboard();
 const isCopying = ref(false);
+const isCopyingSource = ref(false);
 
 const doAddFileToAlbum = async (uuid: string) => {
 	await addFileToAlbum(props.file.uuid, uuid);
@@ -411,6 +414,15 @@ const copyLink = () => {
 	if (props.file?.url) void copy(props.file?.url);
 	// eslint-disable-next-line no-restricted-globals
 	setTimeout(() => (isCopying.value = false), 1000);
+};
+
+const copySource = () => {
+	if (isCopyingSource.value) return;
+	isCopyingSource.value = true;
+
+	if (source.value) void copy(source.value);
+	// eslint-disable-next-line no-restricted-globals
+	setTimeout(() => (isCopyingSource.value = false), 1000);
 };
 
 const doQuarantineFile = () => {

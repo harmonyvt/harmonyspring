@@ -201,7 +201,7 @@ export const getFile = async (uuid: string) => {
 
 export const getGuestFile = async (search: string) => {
 	try {
-		const data = await request.get(`/guest/file/${search}`);
+		const data = await request.get(`guest/file/${search}`);
 		debug('getFile', data);
 		return data.file;
 	} catch (error: any) {

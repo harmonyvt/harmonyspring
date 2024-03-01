@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import process from 'node:process';
 import vue from '@vitejs/plugin-vue';
 import * as dotenv from 'dotenv';
 import { defineConfig } from 'vite';
@@ -12,7 +13,6 @@ dotenv.config({
 });
 
 // https://lucide.dev/icons/list
-
 const backendUrl = 'http://127.0.0.1:8000';
 
 export default defineConfig({
