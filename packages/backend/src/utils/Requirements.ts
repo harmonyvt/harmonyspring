@@ -10,7 +10,7 @@ export default async (log: any) => {
 		process.exit(1);
 	}
 
-	log.debug('Node version: OK');
+	log.info('Node version: OK');
 
 	const ffmpegExists = await lookpath('ffmpeg');
 	if (!ffmpegExists) {
@@ -20,18 +20,18 @@ export default async (log: any) => {
 		process.exit(1);
 	}
 
-	log.debug('ffmpeg: OK');
+	log.info('ffmpeg: OK');
 
 	const YTDLP = YTDlpWrap.default;
 
 	// check if yt-dlp file exists
 	const ytDlpExists = jetpack.exists(fileURLToPath(new URL(`../../../../helper/yt-dlp`, import.meta.url)));
 	if (ytDlpExists) {
-		log.debug('yt-dlp: OK');
+		log.info('yt-dlp: OK');
 		return;
 	}
 
-	log.debug('yt-dlp: Fetching latest release from GitHub');
+	log.info('yt-dlp: Fetching latest release from GitHub');
 	const githubReleasesData = await YTDLP.getGithubReleases(1, 5);
 
 	if (!githubReleasesData) {
@@ -41,12 +41,12 @@ export default async (log: any) => {
 		process.exit(1);
 	}
 
-	log.debug('yt-dlp: Finding Helper Folder');
+	log.info('yt-dlp: Finding Helper Folder');
 	const HelperFolder = fileURLToPath(new URL(`../../../../helper`, import.meta.url));
 
 	jetpack.dir(HelperFolder);
 
-	log.debug('yt-dlp: Downloading yt-dlp from GitHub');
+	log.info('yt-dlp: Downloading yt-dlp from GitHub');
 	await YTDLP.downloadFromGithub(HelperFolder + '/yt-dlp').catch(error => {
 		log.error(
 			"harmonyspring couldn't download yt-dlp. Please check your internet connection or try again later" + error
@@ -54,5 +54,13 @@ export default async (log: any) => {
 		process.exit(1);
 	});
 
-	log.debug('yt-dlp: OK');
+	log.info('yt-dlp: OK');
+
+	const isDockerCompose = process.env.COMPOSE_PROJECT_NAME !== undefined;
+
+	if (isDockerCompose) {
+		log.info('Running in Docker Compose environment');
+	} else {
+		log.info('Not running in Docker Compose environment');
+	}
 };

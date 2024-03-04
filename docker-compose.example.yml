@@ -14,3 +14,12 @@ services:
     ports:
       - 731:8000
     restart: unless-stopped
+
+  browserless:
+    image: browserless/chrome:latest
+    container_name: browserless
+    ports:
+      - 3000:3000
+    environment:
+      - MAX_CONCURRENT_SESSIONS=10
+    restart: unless-stopped

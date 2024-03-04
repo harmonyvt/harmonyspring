@@ -1,4 +1,5 @@
 import type { FastifyReply } from 'fastify';
+import puppeteer from 'puppeteer-core';
 import { z } from 'zod';
 import type { RequestWithUser } from '@/structures/interfaces.js';
 import { http4xxErrorSchema } from '@/structures/schemas/HTTP4xxError.js';
@@ -53,7 +54,41 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		return;
 	}
 
-	const { url } = req.body as { url: string };
+	let { url } = req.body as { url: string };
+	// if twitter url, get image
+	if (url.includes('twitter.com') || url.includes('x.com')) {
+		const browser = await puppeteer.connect({ browserWSEndpoint: 'ws://browserless:3000' });
+		const page = await browser.newPage();
+		await page.goto(url, { waitUntil: 'networkidle2' }); // Wait for the page to load completely
+
+		// Extract the image URL
+		const imageUrl = await page.evaluate(() => {
+			const images = document.querySelectorAll('img');
+			for (const img of Array.from(images)) {
+				if (img.src.includes('pbs.twimg.com/media')) {
+					return img.src;
+				}
+			}
+
+			return null;
+		});
+
+		if (imageUrl) {
+			// if the word medium is in the url, replace it with large
+			if (imageUrl.includes('medium')) {
+				url = imageUrl.replace('medium', 'large');
+			} else {
+				url = imageUrl;
+			}
+
+			console.log(`Image URL: ${imageUrl}`);
+			url = imageUrl;
+			// Here you can proceed to download the image or use the URL as needed
+		} else {
+			console.log('No image found in the tweet.');
+		}
+	}
+
 	const album = await validateAlbum(req.headers.albumuuid as string, req.user ? req.user : undefined);
 	if (!url) {
 		log.error('Missing file information');
