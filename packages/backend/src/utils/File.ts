@@ -5,6 +5,7 @@ import { DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { Blake3Hasher } from '@napi-rs/blake-hash';
 import Zip from 'adm-zip';
 import type { FastifyRequest } from 'fastify';
+import type { FastifyReply } from 'fastify/types/reply.js';
 import { fileTypeFromFile } from 'file-type';
 import jetpack from 'fs-jetpack';
 import moment from 'moment';
@@ -408,25 +409,39 @@ export const uploadFilefromURL = async ({
 	url,
 	albumId,
 	user,
-	ip
+	ip,
+	res
 }: {
 	albumId?: number | null;
 	ip: string;
+	res: FastifyReply;
 	url: string;
 	user: RequestUser | User | undefined;
 }) => {
 	const uniqueIdentifier = await getUniqueFileIdentifier();
 	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
 	log.debug(`> Name for upload: ${uniqueIdentifier}`);
-
+	res.sse({
+		event: 'attempting to upload',
+		data: uniqueIdentifier
+	});
 	// Download the file to a temporary location
 	const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/${uniqueIdentifier}`, import.meta.url));
 	// dont use validatedURL directly, it may be not have the params to fetch the file
 	await jetpack.writeAsync(tempPath, await (await fetch(url)).buffer());
+	res.sse({
+		event: 'finshed download',
+		data: uniqueIdentifier
+	});
 
 	// Determine the file type
 	const fileType = await fileTypeFromFile(tempPath).catch(error => {
 		log.error(`> Error getting file type: ${error}`);
+	});
+
+	res.sse({
+		event: 'file type found',
+		data: fileType ? fileType.ext : ''
 	});
 
 	// Construct the new file name with the correct extension

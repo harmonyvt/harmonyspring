@@ -1,3 +1,4 @@
+import { URL } from 'node:url';
 import type { FastifyReply } from 'fastify';
 import puppeteer from 'puppeteer-core';
 import { z } from 'zod';
@@ -47,7 +48,10 @@ export const options = {
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
-	log.debug('Uploading file from URL');
+	res.sse({
+		event: 'received upload request',
+		data: 'true'
+	});
 	if (!req.user) {
 		log.error('Missing user information');
 		void res.internalServerError('Missing user information');
@@ -55,12 +59,23 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	}
 
 	let { url } = req.body as { url: string };
+	res.sse({
+		event: 'received url',
+		data: url
+	});
 	// if twitter url, get image
 	if (url.includes('twitter.com') || url.includes('x.com')) {
+		res.sse({
+			event: 'url includes twitter or x',
+			data: 'true'
+		});
 		const browser = await puppeteer.connect({ browserWSEndpoint: 'ws://browserless:3000' });
 		const page = await browser.newPage();
 		await page.goto(url, { waitUntil: 'networkidle2' }); // Wait for the page to load completely
-
+		res.sse({
+			event: 'page loaded',
+			data: 'true'
+		});
 		// Extract the image URL
 		const imageUrl = await page.evaluate(() => {
 			const images = document.querySelectorAll('img');
@@ -74,16 +89,24 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		});
 
 		if (imageUrl) {
-			// if the word medium is in the url, replace it with large
-			if (imageUrl.includes('medium')) {
-				url = imageUrl.replace('medium', 'large');
-			} else {
-				url = imageUrl;
+			const urlObj = new URL(imageUrl);
+
+			// Replace 'medium' with 'large' in the pathname if it exists
+			if (urlObj.pathname.includes('medium')) {
+				urlObj.pathname = urlObj.pathname.replace('medium', 'large');
 			}
 
-			console.log(`Image URL: ${imageUrl}`);
-			url = imageUrl;
+			// Remove the 'name' query parameter
+			urlObj.searchParams.delete('name');
+
+			// Convert the URL object back to a string
+			url = urlObj.toString();
 			// Here you can proceed to download the image or use the URL as needed
+
+			res.sse({
+				event: 'formatted url',
+				data: url
+			});
 		} else {
 			console.log('No image found in the tweet.');
 		}
@@ -101,7 +124,8 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		url,
 		ip: req.ip,
 		user: req.user,
-		albumId: album ? album : null
+		albumId: album ? album : null,
+		res
 	});
 	if (!file) {
 		void res.internalServerError('Failed to upload file');

@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/node';
 import { ProfilingIntegration } from '@sentry/profiling-node';
 import dotenv from 'dotenv';
 import fastify from 'fastify';
+import { FastifySSEPlugin } from 'fastify-sse-v2';
 import { jsonSchemaTransform } from 'fastify-type-provider-zod';
 import jetpack from 'fs-jetpack';
 import LiveDirectory from 'live-directory';
@@ -96,7 +97,7 @@ const start = async () => {
 
 	// Create the admin user if it doesn't exist
 	await createAdminUserIfNotExists();
-
+	await server.register(FastifySSEPlugin);
 	// Register the fastify-sensible plugin
 	await server.register(import('@fastify/sensible'));
 
