@@ -96,7 +96,7 @@
 								>
 									Viewer
 								</Button>
-							<ConfirmationDialog
+								<ConfirmationDialog
 									title="Delete file"
 									message="The file will be deleted and gone forever with no way to recover it. It will also remove it from any albums that you added it to. Are you sure?"
 									proceedText="Delete"

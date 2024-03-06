@@ -48,10 +48,6 @@ export const options = {
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
-	res.sse({
-		event: 'received upload request',
-		data: 'true'
-	});
 	if (!req.user) {
 		log.error('Missing user information');
 		void res.internalServerError('Missing user information');
@@ -61,7 +57,8 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	let { url } = req.body as { url: string };
 	res.sse({
 		event: 'received url',
-		data: url
+		data: url,
+		id: '1'
 	});
 	// if twitter url, get image
 	if (url.includes('twitter.com') || url.includes('x.com')) {
@@ -69,7 +66,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			event: 'url includes twitter or x',
 			data: 'true'
 		});
-		const browser = await puppeteer.connect({ browserWSEndpoint: 'ws://browserless:3000' });
+		const browser = await puppeteer.connect({ browserWSEndpoint: 'ws://localhost:3000' });
 		const page = await browser.newPage();
 		await page.goto(url, { waitUntil: 'networkidle2' }); // Wait for the page to load completely
 		res.sse({
@@ -115,7 +112,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	const album = await validateAlbum(req.headers.albumuuid as string, req.user ? req.user : undefined);
 	if (!url) {
 		log.error('Missing file information');
-		void res.badRequest('Missing file information');
+		// void res.badRequest('Missing file information');
 		return;
 	}
 
@@ -128,7 +125,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		res
 	});
 	if (!file) {
-		void res.internalServerError('Failed to upload file');
+		// void res.internalServerError('Failed to upload file');
 	}
 
 	log.info(`File created: ${file.name} (${file.uuid})`);
@@ -137,10 +134,12 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 
 	log.info('File updated on database');
 
+	/*
 	await res.status(200).send({
 		name: file.name,
 		uuid: file.uuid,
 		url,
 		publicUrl: linkData.url
 	});
+	*/
 };

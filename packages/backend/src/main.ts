@@ -4,6 +4,7 @@ import { URL, fileURLToPath } from 'node:url';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import fstatic from '@fastify/static';
+import websocket from '@fastify/websocket';
 import * as Sentry from '@sentry/node';
 import { ProfilingIntegration } from '@sentry/profiling-node';
 import dotenv from 'dotenv';
@@ -97,6 +98,7 @@ const start = async () => {
 
 	// Create the admin user if it doesn't exist
 	await createAdminUserIfNotExists();
+	await server.register(websocket);
 	await server.register(FastifySSEPlugin);
 	// Register the fastify-sensible plugin
 	await server.register(import('@fastify/sensible'));

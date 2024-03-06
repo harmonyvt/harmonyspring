@@ -3,7 +3,10 @@ import { URL, fileURLToPath } from 'node:url';
 import jetpack from 'fs-jetpack';
 import { lookpath } from 'lookpath';
 import YTDlpWrap from 'yt-dlp-wrap';
+import { ensureChannelExists, resetChannel } from './RedisQueue.js';
 export default async (log: any) => {
+	await ensureChannelExists('harmony');
+	await resetChannel('harmony');
 	const nodeMajorVersion = process.versions.node.split('.')[0];
 	if (Number(nodeMajorVersion) < 18) {
 		log.error('harmonyspring needs node v18 or newer to run properly, please upgrade.');
@@ -56,11 +59,6 @@ export default async (log: any) => {
 
 	log.info('yt-dlp: OK');
 
-	const isDockerCompose = process.env.COMPOSE_PROJECT_NAME !== undefined;
-
-	if (isDockerCompose) {
-		log.info('Running in Docker Compose environment');
-	} else {
-		log.info('Not running in Docker Compose environment');
-	}
+	await ensureChannelExists('harmony');
+	await resetChannel('harmony');
 };
