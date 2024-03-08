@@ -1,9 +1,14 @@
 // packages/backend/src/utils/RedisClient.ts
 import { Redis } from 'ioredis';
 
-const redis = new Redis({
+const redisSub = new Redis({
 	host: 'localhost', // or your Redis server host
 	port: 6379 // or your Redis server port
 });
 
-export default redis;
+const redisClient = new Redis({
+	host: 'localhost', // or your Redis server host
+	port: 6379 // or your Redis server port
+});
+
+export { redisClient, redisSub };

@@ -5,7 +5,6 @@ import { DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { Blake3Hasher } from '@napi-rs/blake-hash';
 import Zip from 'adm-zip';
 import type { FastifyRequest } from 'fastify';
-import type { FastifyReply } from 'fastify/types/reply.js';
 import { fileTypeFromFile } from 'file-type';
 import jetpack from 'fs-jetpack';
 import moment from 'moment';
@@ -17,6 +16,7 @@ import prisma from '@/structures/database.js';
 import type { FileInProgress, RequestUser, User } from '@/structures/interfaces.js';
 import { SETTINGS } from '@/structures/settings.js';
 import { log } from '@/utils/Logger.js';
+import { updateStatus } from './RedisQueue.js';
 import { generateThumbnails, getFileThumbnail, removeThumbs } from './Thumbnails.js';
 import { getHost } from './Util.js';
 
@@ -410,43 +410,39 @@ export const uploadFilefromURL = async ({
 	albumId,
 	user,
 	ip,
-	res
+	jobId
 }: {
 	albumId?: number | null;
 	ip: string;
-	res: FastifyReply;
+	jobId: string;
 	url: string;
 	user: RequestUser | User | undefined;
 }) => {
+	if (!user?.uuid) {
+		await updateStatus('', jobId, 'error - missing user information');
+		throw new Error('Missing user information');
+	}
+
 	const uniqueIdentifier = await getUniqueFileIdentifier();
 	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
 	log.debug(`> Name for upload: ${uniqueIdentifier}`);
-	res.sse({
-		event: 'attempting to upload',
-		data: uniqueIdentifier
-	});
+	await updateStatus(user?.uuid, jobId, 'attempting to upload - ' + uniqueIdentifier);
 	// Download the file to a temporary location
 	const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/${uniqueIdentifier}`, import.meta.url));
 	// dont use validatedURL directly, it may be not have the params to fetch the file
 	await jetpack.writeAsync(tempPath, await (await fetch(url)).buffer());
-	res.sse({
-		event: 'finshed download',
-		data: uniqueIdentifier
-	});
+	await updateStatus(user?.uuid, jobId, 'file downloaded - ' + uniqueIdentifier);
 
 	// Determine the file type
 	const fileType = await fileTypeFromFile(tempPath).catch(error => {
 		log.error(`> Error getting file type: ${error}`);
 	});
 
-	res.sse({
-		event: 'file type found',
-		data: fileType ? fileType.ext : ''
-	});
-
 	// Construct the new file name with the correct extension
 	const newFileName = `${uniqueIdentifier}${fileType ? `.${fileType.ext}` : ''}`;
 	log.debug(`> New file name with extension: ${newFileName}`);
+
+	await updateStatus(user?.uuid, jobId, 'file type determined - ' + newFileName);
 
 	// Rename the file with the correct extension
 	const newPath = fileURLToPath(new URL(`../../../../uploads/${newFileName}`, import.meta.url));
@@ -468,6 +464,8 @@ export const uploadFilefromURL = async ({
 		source: url
 	};
 
+	await updateStatus(user?.uuid, jobId, 'attempting to store file - ' + newFileName);
+
 	let uploadedFile;
 	const fileOnDb = await checkFileHashOnDB(user, file);
 	if (fileOnDb?.repeated) {
@@ -479,6 +477,7 @@ export const uploadFilefromURL = async ({
 		void generateThumbnails({ filename: savedFile.file.name });
 	}
 
+	await updateStatus(user?.uuid, jobId, 'file stored - ' + newFileName);
 	return uploadedFile;
 };
 

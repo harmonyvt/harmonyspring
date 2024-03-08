@@ -15,7 +15,6 @@
 
 				<Uploader />
 			</div>
-
 			<TransitionRoot
 				appear
 				:show="files.length > 0"
@@ -70,6 +69,11 @@
 					</div>
 				</div>
 			</TransitionRoot>
+			<div
+				class="flex w-full mt-16 flex-col rounded-md bg-[#181a1b] border-4 shadow-lg border-[#303436] items-center justify-center p-4 py-8 max-w-4xl"
+			>
+				<UploaderWebsocket />
+			</div>
 		</div>
 	</div>
 </template>
@@ -81,6 +85,7 @@ import { ref, computed, onMounted } from 'vue';
 import Header from '~/components/header/Header.vue';
 import Uploader from '~/components/upload/Uploader.vue';
 import UploaderLink from '~/components/upload/UploaderLink.vue';
+import UploaderWebsocket from '~/components/upload/UploaderWebsocket.vue';
 import UploaderYTDLP from '~/components/upload/UploaderYTDLP.vue';
 import { useUploadsStore } from '~/store';
 import { formatBytes } from '~/use/file';

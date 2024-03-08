@@ -1,66 +1,65 @@
-import { setTimeout } from 'node:timers';
-import redis from './RedisClient.js';
+import { log } from './Logger.js';
+import { redisClient } from './RedisClient.js';
 
-export const addToQueue = async (userId: string, itemId: string, status: string) => {
-	await redis.set(`queue:${userId}:${itemId}`, status);
+export const addToQueue = async (userUUID: string, itemId: string, status: string) => {
+	log.info(`Adding item ${itemId} to queue for user ${userUUID}`);
+	await redisClient.set(`queue:${userUUID}:${itemId}`, status);
+	// Publish a message indicating an item has been added to the queue
+	await redisClient.publish('queue-updates', JSON.stringify({ action: 'add', userUUID, itemId, status }));
 };
 
-export const updateStatus = async (userId: string, itemId: string, status: string) => {
-	await redis.set(`queue:${userId}:${itemId}`, status);
+export const updateStatus = async (userUUID: string, itemId: string, status: string) => {
+	log.info(`Updating status of item ${itemId} for user ${userUUID} to ${status}`);
+	await redisClient.set(`queue:${userUUID}:${itemId}`, status);
+	// Publish a message indicating an item's status has been updated
+	await redisClient.publish('queue-updates', JSON.stringify({ action: 'update', userUUID, itemId, status }));
 };
 
-export const getStatus = async (userId: string, itemId: string) => {
-	return redis.get(`queue:${userId}:${itemId}`);
+export const removeStatus = async (userUUID: string, itemId: string) => {
+	log.info(`Removing item ${itemId} from queue for user ${userUUID}`);
+	await redisClient.del(`queue:${userUUID}:${itemId}`);
+	// Publish a message indicating an item has been removed from the queue
+	await redisClient.publish('queue-updates', JSON.stringify({ action: 'remove', userUUID, itemId }));
 };
 
-export const getAllItemsForUser = async (userId: string) => {
+export const getStatus = async (userUUID: string, itemId: string) => {
+	log.info(`Getting status of item ${itemId} for user ${userUUID}`);
+	return redisClient.get(`queue:${userUUID}:${itemId}`);
+};
+
+export const getAllItemsForUser = async (userUUID: string) => {
+	log.info(`Getting all items for user ${userUUID}`);
 	let cursor = '0';
 	const items: Record<string, string> = {};
 
 	do {
-		const result = await redis.scan(cursor, 'MATCH', `queue:${userId}:*`);
+		const result = await redisClient.scan(cursor, 'MATCH', `queue:${userUUID}:*`);
 		cursor = result[0];
 
 		for (const key of result[1]) {
 			const itemId = key.split(':').pop(); // Extract the itemId from the key
 			if (itemId !== undefined) {
-				const status = await redis.get(key);
+				const status = await redisClient.get(key);
 				items[itemId] = status ?? '';
 			}
 		}
 	} while (cursor !== '0');
 
+	log.info(`Found ${Object.keys(items).length} items for user ${userUUID}`);
+
 	return items;
 };
 
-// Function to check if a channel exists and create it if not
-export async function ensureChannelExists(channel: string) {
-	const channels = await redis.pubsub('CHANNELS', '*');
-	if (channels.includes(channel)) {
-		console.info(`Channel ${channel} already exists.`);
-	} else {
-		console.info(`Channel ${channel} does not exist. Creating it now.`);
-		// Publish a message to the channel to create it
-		await redis.publish(channel, 'Initial message');
-	}
-}
+// reset whole queue
+export const resetQueue = async () => {
+	log.info('Resetting queue');
+	let cursor = '0';
+	do {
+		const result = await redisClient.scan(cursor, 'MATCH', 'queue:*');
+		cursor = result[0];
 
-export async function resetChannel(channel: string) {
-	console.info(`Resetting channel ${channel}...`);
-
-	// Subscribe to the channel
-	await redis.subscribe(channel);
-
-	// Consume all messages without processing them
-	redis.on('message', (subscribedChannel, message) => {
-		if (subscribedChannel === channel) {
-			console.info(`Consumed message: ${message}`);
+		for (const key of result[1]) {
+			await redisClient.del(key);
 		}
-	});
-
-	// Unsubscribe after a short delay to ensure all messages are consumed
-	setTimeout(async () => {
-		await redis.unsubscribe(channel);
-		console.info(`Unsubscribed from ${channel}. Channel reset.`);
-	}, 1000); // Adjust the delay as needed
-}
+	} while (cursor !== '0');
+};

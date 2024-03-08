@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { URL } from 'node:url';
 import type { FastifyReply } from 'fastify';
 import puppeteer from 'puppeteer-core';
@@ -7,6 +8,7 @@ import { http4xxErrorSchema } from '@/structures/schemas/HTTP4xxError.js';
 import { http5xxErrorSchema } from '@/structures/schemas/HTTP5xxError.js';
 import { constructFilePublicLink, uploadFilefromURL } from '@/utils/File.js';
 import { log } from '@/utils/Logger.js';
+import { addToQueue, updateStatus } from '@/utils/RedisQueue.js';
 import { validateAlbum } from '@/utils/UploadHelpers.js';
 export const schema = {
 	summary: 'Upload file from a URL',
@@ -48,6 +50,9 @@ export const options = {
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
+	// random item id
+	const itemId = Math.random().toString(36).slice(7).toString();
+	await addToQueue(req.user.uuid, itemId, 'pending');
 	if (!req.user) {
 		log.error('Missing user information');
 		void res.internalServerError('Missing user information');
@@ -55,24 +60,20 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	}
 
 	let { url } = req.body as { url: string };
-	res.sse({
-		event: 'received url',
-		data: url,
-		id: '1'
-	});
+	await updateStatus(req.user.uuid, itemId, 'downloading - ' + url);
 	// if twitter url, get image
 	if (url.includes('twitter.com') || url.includes('x.com')) {
-		res.sse({
-			event: 'url includes twitter or x',
-			data: 'true'
-		});
-		const browser = await puppeteer.connect({ browserWSEndpoint: 'ws://localhost:3000' });
+		await updateStatus(req.user.uuid, itemId, 'running twitter script');
+		let browser;
+		if (process.env.NODE_ENV === 'production') {
+			browser = await puppeteer.connect({ browserWSEndpoint: 'ws://browserless:3000' });
+		} else {
+			browser = await puppeteer.connect({ browserWSEndpoint: 'ws://localhost:3000' });
+		}
+
 		const page = await browser.newPage();
 		await page.goto(url, { waitUntil: 'networkidle2' }); // Wait for the page to load completely
-		res.sse({
-			event: 'page loaded',
-			data: 'true'
-		});
+		await updateStatus(req.user.uuid, itemId, 'opening - ' + url);
 		// Extract the image URL
 		const imageUrl = await page.evaluate(() => {
 			const images = document.querySelectorAll('img');
@@ -99,20 +100,17 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			// Convert the URL object back to a string
 			url = urlObj.toString();
 			// Here you can proceed to download the image or use the URL as needed
-
-			res.sse({
-				event: 'formatted url',
-				data: url
-			});
+			await updateStatus(req.user.uuid, itemId, 'image found - ' + url);
 		} else {
 			console.log('No image found in the tweet.');
+			await updateStatus(req.user.uuid, itemId, 'no image found treating as normal url');
 		}
 	}
 
 	const album = await validateAlbum(req.headers.albumuuid as string, req.user ? req.user : undefined);
 	if (!url) {
 		log.error('Missing file information');
-		// void res.badRequest('Missing file information');
+		void res.badRequest('Missing file information');
 		return;
 	}
 
@@ -122,10 +120,10 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		ip: req.ip,
 		user: req.user,
 		albumId: album ? album : null,
-		res
+		jobId: itemId
 	});
 	if (!file) {
-		// void res.internalServerError('Failed to upload file');
+		void res.internalServerError('Failed to upload file');
 	}
 
 	log.info(`File created: ${file.name} (${file.uuid})`);
@@ -134,12 +132,10 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 
 	log.info('File updated on database');
 
-	/*
 	await res.status(200).send({
 		name: file.name,
 		uuid: file.uuid,
 		url,
 		publicUrl: linkData.url
 	});
-	*/
 };

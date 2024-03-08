@@ -3,10 +3,9 @@ import type { SocketStream } from '@fastify/websocket';
 import type { FastifyRequest } from 'fastify';
 import { log } from '@/utils/Logger.js';
 import { redisSub } from '@/utils/RedisClient.js';
-import { getAllItemsForUser } from '@/utils/RedisQueue.js';
 
 export const route = {
-	url: '/queue/:uuid',
+	url: '/logs/:uuid',
 	middlewares: [
 		{
 			name: 'apiKey'
@@ -31,25 +30,22 @@ export const run = async (connection: SocketStream, req: FastifyRequest) => {
 		log.info(`Subscribed to queue-updates channel with ${count} subscriptions`);
 	});
 
-	redisSub.on('message', async (channel, message) => {
-		log.info(`Received redis message from ${channel}: ${message}`);
+	redisSub.on('message', (channel, message) => {
+		log.info(`Received message from ${channel}: ${message}`);
 		// Send the message to the user
-		const items = await getAllItemsForUser(uuid);
-		connection.socket.send(
-			JSON.stringify({
-				type: 'UPDATE',
-				items // items: Record<string, string>
-			})
-		);
+		connection.socket.send(JSON.stringify({ type: 'UPDATE', message }));
 	});
 
-	const items = await getAllItemsForUser(uuid);
+	redisSub.on('error', error => {
+		log.error(`Queue websocket error: ${error.message}`);
+		connection.socket.send(JSON.stringify({ event: 'ERROR', message: error.message }));
+	});
 
-	// Send a message immediately upon connection of all items in the queue
+	// Send a message immediately of success upon connection
 	connection.socket.send(
 		JSON.stringify({
-			type: 'INITIAL',
-			items
+			event: 'INFO',
+			message: 'Server logs websocket connection established'
 		})
 	);
 
@@ -74,6 +70,6 @@ export const run = async (connection: SocketStream, req: FastifyRequest) => {
 
 	connection.socket.on('error', error => {
 		log.error(`Queue websocket error: ${error.message}`);
-		connection.socket.send(JSON.stringify({ type: 'ERROR', message: error.message }));
+		connection.socket.send(JSON.stringify({ event: 'ERROR', message: error.message }));
 	});
 };

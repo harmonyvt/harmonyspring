@@ -2,11 +2,9 @@ import process from 'node:process';
 import { URL, fileURLToPath } from 'node:url';
 import jetpack from 'fs-jetpack';
 import { lookpath } from 'lookpath';
+import puppeteer from 'puppeteer-core';
 import YTDlpWrap from 'yt-dlp-wrap';
-import { ensureChannelExists, resetChannel } from './RedisQueue.js';
 export default async (log: any) => {
-	await ensureChannelExists('harmony');
-	await resetChannel('harmony');
 	const nodeMajorVersion = process.versions.node.split('.')[0];
 	if (Number(nodeMajorVersion) < 18) {
 		log.error('harmonyspring needs node v18 or newer to run properly, please upgrade.');
@@ -14,6 +12,28 @@ export default async (log: any) => {
 	}
 
 	log.info('Node version: OK');
+
+	if (process.env.NODE_ENV === 'production') {
+		await puppeteer
+			.connect({ browserWSEndpoint: 'ws://browserless:3000' })
+			.then(() => {
+				log.info('puppeteer: OK');
+			})
+			.catch((error: any) => {
+				log.error('puppeteer: ' + error);
+				process.exit(1);
+			});
+	} else {
+		await puppeteer
+			.connect({ browserWSEndpoint: 'ws://localhost:3000' })
+			.then(() => {
+				log.info('puppeteer: OK');
+			})
+			.catch((error: any) => {
+				log.error('puppeteer: ' + error);
+				process.exit(1);
+			});
+	}
 
 	const ffmpegExists = await lookpath('ffmpeg');
 	if (!ffmpegExists) {
@@ -58,7 +78,4 @@ export default async (log: any) => {
 	});
 
 	log.info('yt-dlp: OK');
-
-	await ensureChannelExists('harmony');
-	await resetChannel('harmony');
 };
