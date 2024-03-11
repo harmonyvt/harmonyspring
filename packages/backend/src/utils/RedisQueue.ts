@@ -3,8 +3,10 @@ import { redisClient } from './RedisClient.js';
 
 // Type definitions (if using TypeScript)
 export type Status = {
+	date: string;
 	event: string;
-	type: string;
+	jobID: string;
+	message: string;
 };
 
 export type ItemData = {
@@ -19,6 +21,11 @@ export const addItem = async (userUUID: string, itemData: ItemData) => {
 
 		// Store item data in a hash
 		await redisClient.hset(jobKey, 'status', JSON.stringify(itemData.status));
+
+		// publish to the job channel
+		await redisClient.publish('job:' + userUUID, JSON.stringify({ userUUID, itemData }));
+
+		log.debug(`Added item to queue for user ${userUUID}`);
 	} catch (error) {
 		log.error('Error adding item to queue', error);
 	}
@@ -31,7 +38,12 @@ export const updateStatus = async (userUUID: string, itemData: ItemData) => {
 
 		// Update item's status in its hash
 		await redisClient.hset(jobKey, 'status', JSON.stringify(itemData.status));
-		log.debug(`Updated status for item ${itemData.itemId}`);
+		log.debug(`Updated status for item ${itemData.itemId} to ${itemData.status.message}`);
+
+		// publish to the job channel
+		await redisClient.publish('job:' + userUUID, JSON.stringify({ userUUID, itemData }));
+
+		log.debug(`Updated item status for user ${userUUID}`);
 	} catch (error) {
 		log.error('Error adding item to queue', error);
 	}
@@ -44,6 +56,11 @@ export const removeStatus = async (userUUID: string, itemData: ItemData) => {
 
 		// Remove item's hash
 		await redisClient.del(jobKey);
+
+		// publish to the job channel
+		await redisClient.publish('job' + userUUID, JSON.stringify({ userUUID, itemData }));
+
+		log.debug(`Removed item status for user ${userUUID}`);
 	} catch (error) {
 		log.error('Error adding item to queue', error);
 	}
@@ -64,6 +81,14 @@ export const getStatus = async (userUUID: string, itemId: string) => {
 };
 
 // Get all items' status for a specific user
+/*
+return export interface Item {
+	jobID: string;
+	event: string;
+	message: string;
+	date: string;
+}
+*/
 export const getAllItemsForUser = async (userUUID: string) => {
 	try {
 		// Use a pattern to match all keys related to the user's queue
@@ -81,6 +106,10 @@ export const getAllItemsForUser = async (userUUID: string) => {
 		);
 
 		log.debug(`Retrieved ${items.length} items for user ${userUUID}`);
+		for (const element of items) {
+			log.debug(`Item: ${element}`);
+		}
+
 		return items;
 	} catch (error) {
 		log.error('Error getting all items for user', error);
@@ -100,3 +129,19 @@ export const ResetJobs = async (log: any) => {
 		log.error('Error resetting jobs', error);
 	}
 };
+
+export function createStatus(event: string, message: string, jobID: string): Status {
+	return {
+		date: new Date().toISOString(),
+		event,
+		jobID,
+		message
+	};
+}
+
+export function createItemData(itemId: string, status: Status): ItemData {
+	return {
+		itemId,
+		status
+	};
+}

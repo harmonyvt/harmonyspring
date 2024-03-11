@@ -16,8 +16,7 @@ import prisma from '@/structures/database.js';
 import type { FileInProgress, RequestUser, User } from '@/structures/interfaces.js';
 import { SETTINGS } from '@/structures/settings.js';
 import { log } from '@/utils/Logger.js';
-import type { ItemData } from './RedisQueue.js';
-import { updateStatus } from './RedisQueue.js';
+import { createItemData, createStatus, updateStatus } from './RedisQueue.js';
 import { generateThumbnails, getFileThumbnail, removeThumbs } from './Thumbnails.js';
 import { getHost } from './Util.js';
 
@@ -411,95 +410,93 @@ export const uploadFilefromURL = async ({
 	albumId,
 	user,
 	ip,
-	itemData
+	itemId
 }: {
 	albumId?: number | null;
 	ip: string;
-	itemData: ItemData;
+	itemId: string;
 	url: string;
 	user: RequestUser | User | undefined;
 }) => {
 	if (!user?.uuid) {
-		await updateStatus('', {
-			...itemData,
-			status: 'error',
-			outcome: 1
-		});
+		await updateStatus('', createItemData(itemId, createStatus('Error', 'Missing user information', itemId)));
 		throw new Error('Missing user information');
 	}
 
-	const uniqueIdentifier = await getUniqueFileIdentifier();
-	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
-	log.debug(`> Name for upload: ${uniqueIdentifier}`);
-	await updateStatus(user?.uuid, {
-		...itemData,
-		status: 'file identifier generated - ' + uniqueIdentifier
-	});
-	// Download the file to a temporary location
-	const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/${uniqueIdentifier}`, import.meta.url));
-	// dont use validatedURL directly, it may be not have the params to fetch the file
-	await jetpack.writeAsync(tempPath, await (await fetch(url)).buffer());
-	await updateStatus(user?.uuid, {
-		...itemData,
-		status: 'file downloaded - ' + uniqueIdentifier
-	});
+	try {
+		const uniqueIdentifier = await getUniqueFileIdentifier();
+		if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
+		log.debug(`> Name for upload: ${uniqueIdentifier}`);
+		await updateStatus(
+			user?.uuid,
+			createItemData(itemId, createStatus('InProgress', 'Generating unique identifier', itemId))
+		);
+		// Download the file to a temporary location
+		const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/${uniqueIdentifier}`, import.meta.url));
+		// dont use validatedURL directly, it may be not have the params to fetch the file
+		await jetpack.writeAsync(tempPath, await (await fetch(url)).buffer());
+		await updateStatus(user?.uuid, createItemData(itemId, createStatus('InProgress', 'File downloaded', itemId)));
 
-	// Determine the file type
-	const fileType = await fileTypeFromFile(tempPath).catch(error => {
-		log.error(`> Error getting file type: ${error}`);
-	});
+		// Determine the file type
+		const fileType = await fileTypeFromFile(tempPath).catch(error => {
+			log.error(`> Error getting file type: ${error}`);
+		});
 
-	// Construct the new file name with the correct extension
-	const newFileName = `${uniqueIdentifier}${fileType ? `.${fileType.ext}` : ''}`;
-	log.debug(`> New file name with extension: ${newFileName}`);
+		// Construct the new file name with the correct extension
+		const newFileName = `${uniqueIdentifier}${fileType ? `.${fileType.ext}` : ''}`;
+		log.debug(`> New file name with extension: ${newFileName}`);
 
-	await updateStatus(user?.uuid, {
-		...itemData,
-		status: 'file type determined - ' + newFileName
-	});
+		await updateStatus(
+			user?.uuid,
+			createItemData(itemId, createStatus('InProgress', 'File type determined', itemId))
+		);
 
-	// Rename the file with the correct extension
-	const newPath = fileURLToPath(new URL(`../../../../uploads/${newFileName}`, import.meta.url));
-	await jetpack.moveAsync(tempPath, newPath);
+		// Rename the file with the correct extension
+		const newPath = fileURLToPath(new URL(`../../../../uploads/${newFileName}`, import.meta.url));
+		await jetpack.moveAsync(tempPath, newPath);
 
-	// Update the file record in the database with the new file name and extension
-	const file = {
-		userId: user?.id,
-		name: newFileName,
-		extension: fileType ? fileType.ext : '',
-		path: newPath,
-		original: newFileName,
-		type: fileType?.mime ?? 'application/octet-stream',
-		size: String(jetpack.inspect(newPath)?.size ?? 0),
-		hash: await hashFile(newPath),
-		ip,
-		isS3: false,
-		isWatched: false,
-		source: url
-	};
+		// Update the file record in the database with the new file name and extension
+		const file = {
+			userId: user?.id,
+			name: newFileName,
+			extension: fileType ? fileType.ext : '',
+			path: newPath,
+			original: newFileName,
+			type: fileType?.mime ?? 'application/octet-stream',
+			size: String(jetpack.inspect(newPath)?.size ?? 0),
+			hash: await hashFile(newPath),
+			ip,
+			isS3: false,
+			isWatched: false,
+			source: url
+		};
 
-	await updateStatus(user?.uuid, {
-		...itemData,
-		fileID: newFileName,
-		status: 'file stored - ' + newFileName
-	});
+		await updateStatus(
+			user?.uuid,
+			createItemData(itemId, createStatus('InProgress', 'File updated on database', itemId))
+		);
 
-	let uploadedFile;
-	const fileOnDb = await checkFileHashOnDB(user, file);
-	if (fileOnDb?.repeated) {
-		uploadedFile = fileOnDb.file;
-		await deleteTmpFile(tempPath);
-	} else {
-		const savedFile = await storeFileToDb(user, file, albumId ? albumId : undefined);
-		uploadedFile = savedFile.file;
-		void generateThumbnails({ filename: savedFile.file.name });
+		let uploadedFile;
+		const fileOnDb = await checkFileHashOnDB(user, file);
+		if (fileOnDb?.repeated) {
+			uploadedFile = fileOnDb.file;
+			await deleteTmpFile(tempPath);
+		} else {
+			const savedFile = await storeFileToDb(user, file, albumId ? albumId : undefined);
+			uploadedFile = savedFile.file;
+			void generateThumbnails({ filename: savedFile.file.name });
+		}
+
+		await updateStatus(user?.uuid, createItemData(itemId, createStatus('Finish', 'File uploaded', itemId)));
+		return uploadedFile;
+	} catch (error) {
+		log.error('Error uploading file from URL', error);
+		await updateStatus(
+			user?.uuid,
+			createItemData(itemId, createStatus('Error', 'Error uploading file from URL', itemId))
+		);
+		throw error;
 	}
-
-	await updateStatus(user?.uuid, {
-		...itemData,
-		status: 'file created - ' + uploadedFile.name
-	});
-	return uploadedFile;
 };
 
 export const saveFileToAlbum = async (albumId: number, fileId: number) => {
@@ -635,15 +632,28 @@ export const YTDLPFilefromURL = async ({
 	user,
 	ip,
 	url,
-	albumId
+	albumId,
+	itemId
 }: {
 	albumId?: number | null | undefined;
 	ip: string;
+	itemId: string;
 	url: string;
 	user?: RequestUser | User | undefined;
 }) => {
 	const uniqueIdentifier = await getUniqueFileIdentifier();
-	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
+	await updateStatus(
+		user?.uuid as string,
+		createItemData(itemId, createStatus('InProgress', 'Generating unique identifier', itemId))
+	);
+	if (!uniqueIdentifier) {
+		await updateStatus(
+			user?.uuid as string,
+			createItemData(itemId, createStatus('Error', 'Could not generate unique identifier', itemId))
+		);
+		throw new Error('Could not generate unique identifier.');
+	}
+
 	log.debug(`> Name for upload: ${uniqueIdentifier}`);
 
 	// Download the file to a temporary location
@@ -654,28 +664,58 @@ export const YTDLPFilefromURL = async ({
 	const tempFile = uniqueIdentifier + '.mp4';
 	const tempFilePath = tempPath + tempFile;
 	log.debug(`yt-dlp: attempting to download ${url} to ${tempFilePath}`);
+	await updateStatus(
+		user?.uuid as string,
+		createItemData(itemId, createStatus('InProgress', 'Downloading file - ' + url, itemId))
+	);
 	const YTDLPWaiter = new Promise<void>((resolve, reject) => {
 		const YTDLPWrapperEvent = YTDLPWrapper.exec([url, '-f', 'best', '-o', tempFilePath])
-			.on('progress', progress => {
+			.on('progress', async progress => {
 				log.debug(`yt-dlp: ${progress.percent}%`);
+				await updateStatus(
+					user?.uuid as string,
+					createItemData(
+						itemId,
+						createStatus('InProgress', `Downloading file - ${url} - ${progress.percent}%`, itemId)
+					)
+				);
 			})
-			.on('error', error => {
+			.on('error', async error => {
 				log.error(`yt-dlp: ${error.message}`);
+				await updateStatus(
+					user?.uuid as string,
+					createItemData(
+						itemId,
+						createStatus('Error', `Downloading file - ${url} - ${error.message}`, itemId)
+					)
+				);
 				reject(error);
 			})
-			.on('close', () => {
+			.on('close', async () => {
 				log.debug(`yt-dlp: ${YTDLPWrapperEvent.ytDlpProcess?.pid} finished ` + user?.id);
+				await updateStatus(
+					user?.uuid as string,
+					createItemData(itemId, createStatus('InProgress', 'File downloaded', itemId))
+				);
 				resolve();
 			});
 	});
 	await YTDLPWaiter;
 	// Determine the file type
-	const fileType = await fileTypeFromFile(tempFilePath).catch(error => {
+	const fileType = await fileTypeFromFile(tempFilePath).catch(async error => {
+		await updateStatus(
+			user?.uuid as string,
+			createItemData(itemId, createStatus('Error', `Downloading file - ${url} - ${error.message}`, itemId))
+		);
 		log.error(`> Error getting file type: ${error}`);
 	});
 
 	// Construct the new file name with the correct extension
 	log.debug(`> New file name with extension: ${tempFile}`);
+	await updateStatus(
+		user?.uuid as string,
+		createItemData(itemId, createStatus('InProgress', 'File with extension found', itemId))
+	);
 
 	// Rename the file with the correct extension
 	const newPath = fileURLToPath(new URL(`../../../../uploads/${tempFile}`, import.meta.url));
@@ -697,14 +737,27 @@ export const YTDLPFilefromURL = async ({
 		source: url
 	};
 
+	await updateStatus(
+		user?.uuid as string,
+		createItemData(itemId, createStatus('InProgress', 'File updated on database', itemId))
+	);
+
 	let uploadedFile;
 	const fileOnDb = await checkFileHashOnDB(user, file);
 	if (fileOnDb?.repeated) {
 		uploadedFile = fileOnDb.file;
+		await updateStatus(
+			user?.uuid as string,
+			createItemData(itemId, createStatus('Finish', 'File uploaded', itemId))
+		);
 		await deleteTmpFile(tempPath);
 	} else {
 		const savedFile = await storeFileToDb(user, file, albumId ? albumId : undefined);
 		uploadedFile = savedFile.file;
+		await updateStatus(
+			user?.uuid as string,
+			createItemData(itemId, createStatus('Finish', 'File uploaded', itemId))
+		);
 		void generateThumbnails({ filename: savedFile.file.name });
 	}
 

@@ -69,11 +69,7 @@
 					</div>
 				</div>
 			</TransitionRoot>
-			<div
-				class="flex w-full mt-16 flex-col rounded-md bg-[#181a1b] border-4 shadow-lg border-[#303436] items-center justify-center p-4 py-8 max-w-4xl"
-			>
-				<UploaderWebsocket />
-			</div>
+			<UploaderWebsocket />
 		</div>
 	</div>
 </template>
