@@ -8,8 +8,8 @@ import { http4xxErrorSchema } from '@/structures/schemas/HTTP4xxError.js';
 import { http5xxErrorSchema } from '@/structures/schemas/HTTP5xxError.js';
 import { constructFilePublicLink, uploadFilefromURL } from '@/utils/File.js';
 import { log } from '@/utils/Logger.js';
-import { addToQueue, updateStatus } from '@/utils/RedisQueue.js';
-import type { ItemData } from '@/utils/RedisQueue.js';
+import { addItem, updateStatus } from '@/utils/RedisQueue.js';
+import type { ItemData, Status } from '@/utils/RedisQueue.js';
 import { validateAlbum } from '@/utils/UploadHelpers.js';
 export const schema = {
 	summary: 'Upload file from a URL',
@@ -52,14 +52,18 @@ export const options = {
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	// random item id
-	const jobId = Math.random().toString(36).slice(7).toString();
-	let itemData: ItemData = {
-		status: 'pending',
-		jobID: jobId,
-		fileID: '',
-		outcome: 0
+	const itemId = Math.random().toString(36).slice(7).toString();
+
+	let status: Status = {
+		event: 'upload',
+		type: 'waiting'
 	};
-	await addToQueue(req.user.uuid, itemData);
+	let itemData: ItemData = {
+		itemId,
+		status
+	};
+	await addItem(req.user.uuid, itemData);
+
 	if (!req.user) {
 		log.error('Missing user information');
 		void res.internalServerError('Missing user information');
@@ -67,18 +71,29 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	}
 
 	let { url } = req.body as { url: string };
+	status = {
+		event: 'upload',
+		type: 'downloading - ' + url
+	};
+
 	itemData = {
 		...itemData,
-		status: 'downloading - ' + url
+		status
 	};
+
 	await updateStatus(req.user.uuid, itemData);
 	// if twitter url, get image
 	if (url.includes('twitter.com') || url.includes('x.com')) {
+		status = {
+			event: 'upload',
+			type: 'downloading twitter - ' + url
+		};
 		itemData = {
 			...itemData,
-			status: 'running twitter script'
+			status
 		};
 		await updateStatus(req.user.uuid, itemData);
+
 		let browser;
 		if (process.env.NODE_ENV === 'production') {
 			browser = await puppeteer.connect({ browserWSEndpoint: 'ws://browserless:3000' });
@@ -88,16 +103,34 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 
 		const page = await browser.newPage();
 		await page.goto(url, { waitUntil: 'networkidle2' }); // Wait for the page to load completely
+
+		status = {
+			event: 'upload',
+			type: 'processing - ' + url
+		};
+
 		itemData = {
 			...itemData,
-			status: 'opening - ' + url
+			status
 		};
+
 		await updateStatus(req.user.uuid, itemData);
 		// Extract the image URL
-		const imageUrl = await page.evaluate(() => {
+		const imageUrl = await page.evaluate(async () => {
 			const images = document.querySelectorAll('img');
 			for (const img of Array.from(images)) {
 				if (img.src.includes('pbs.twimg.com/media')) {
+					status = {
+						event: 'upload',
+						type: 'image found - ' + img.src
+					};
+
+					itemData = {
+						...itemData,
+						status
+					};
+
+					await updateStatus(req.user.uuid, itemData);
 					return img.src;
 				}
 			}

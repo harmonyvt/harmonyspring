@@ -1,90 +1,102 @@
 import { log } from './Logger.js';
 import { redisClient } from './RedisClient.js';
 
-export interface ItemData {
-	fileID: string;
-	jobID: string;
-	outcome: number;
-	status: string; // Use 'number' type for integers in TypeScript
-}
-
-export const addItem = async (userUUID: string, itemId: string, itemData: ItemData) => {
-	const sortedKey = `queue:${userUUID}`;
-	log.info(`Adding item ${itemData.jobID} to queue for user ${userUUID}`);
-	await redisClient.set(`queue:${userUUID}:${itemData.jobID}`, JSON.stringify(itemData));
-	// Publish a message indicating an item has been added to the queue
-	await redisClient.publish('queue-updates', JSON.stringify({ action: 'add', userUUID, itemData }));
+// Type definitions (if using TypeScript)
+export type Status = {
+	event: string;
+	type: string;
 };
 
+export type ItemData = {
+	itemId: string;
+	status: Status;
+};
+
+// Add a new item to the user's queue
+export const addItem = async (userUUID: string, itemData: ItemData) => {
+	try {
+		const jobKey = `job:${userUUID}:${itemData.itemId}`;
+
+		// Store item data in a hash
+		await redisClient.hset(jobKey, 'status', JSON.stringify(itemData.status));
+	} catch (error) {
+		log.error('Error adding item to queue', error);
+	}
+};
+
+// Update an item's status
 export const updateStatus = async (userUUID: string, itemData: ItemData) => {
-	log.info(`Updating status of item ${itemData.jobID} for user ${userUUID}`);
-	await redisClient.set(`queue:${userUUID}:${itemData.jobID}`, JSON.stringify(itemData));
-	// Publish a message indicating an item's status has been updated
-	await redisClient.publish('queue-updates', JSON.stringify({ action: 'update', userUUID, itemData }));
+	try {
+		const jobKey = `job:${userUUID}:${itemData.itemId}`;
+
+		// Update item's status in its hash
+		await redisClient.hset(jobKey, 'status', JSON.stringify(itemData.status));
+		log.debug(`Updated status for item ${itemData.itemId}`);
+	} catch (error) {
+		log.error('Error adding item to queue', error);
+	}
 };
 
+// Remove an item's status
 export const removeStatus = async (userUUID: string, itemData: ItemData) => {
-	log.info(`Removing item ${itemData.jobID} from queue for user ${userUUID}`);
-	await redisClient.del(`queue:${userUUID}:${itemData.jobID}`);
-	// Publish a message indicating an item has been removed from the queue
-	await redisClient.publish('queue-updates', JSON.stringify({ action: 'remove', userUUID, itemData }));
+	try {
+		const jobKey = `job:${userUUID}:${itemData.itemId}`;
+
+		// Remove item's hash
+		await redisClient.del(jobKey);
+	} catch (error) {
+		log.error('Error adding item to queue', error);
+	}
 };
 
+// Get an item's status
 export const getStatus = async (userUUID: string, itemId: string) => {
-	log.info(`Getting status of item ${itemId} for user ${userUUID}`);
-	return redisClient.get(`queue:${userUUID}:${itemId}`);
+	try {
+		const jobKey = `job:${userUUID}:${itemId}`;
+
+		// Retrieve item's status from its hash
+		const statusJson = await redisClient.hget(jobKey, 'status');
+		log.debug(`Retrieved status for item ${itemId}`);
+		return statusJson ? JSON.parse(statusJson) : null;
+	} catch (error) {
+		log.error('Error getting item status', error);
+	}
 };
 
-// get all items for a user, items = {{jobID, status}[]}
-export const getAllItemsForUser = async (userUUID: string): Promise<Record<string, ItemData>> => {
-	log.info(`Getting all items for user ${userUUID}`);
-	let cursor = '0';
-	const items: Record<string, ItemData> = {};
+// Get all items' status for a specific user
+export const getAllItemsForUser = async (userUUID: string) => {
+	try {
+		// Use a pattern to match all keys related to the user's queue
+		const pattern = `job:${userUUID}:*`;
 
-	do {
-		const result = await redisClient.scan(cursor, 'MATCH', `queue:${userUUID}:*`);
-		cursor = result[0];
+		// Get all keys matching the pattern
+		const keys = await redisClient.keys(pattern);
 
-		for (const key of result[1]) {
-			const jobID = key.split(':').pop(); // Extract the itemId from the key
-			if (jobID !== undefined) {
-				const jsonString = await redisClient.get(key);
-				if (jsonString) {
-					try {
-						const itemData: ItemData = JSON.parse(jsonString);
-						items[jobID] = itemData;
-					} catch (error) {
-						log.error(`Error parsing JSON for key: ${key}`, error);
-						// Optionally handle the error, e.g., by continuing to the next key
-					}
-				} else {
-					log.info(`No data found for key: ${key}`);
-				}
-			}
-		}
-	} while (cursor !== '0');
+		// Get all items' status from their hashes
+		const items = await Promise.all(
+			keys.map(async key => {
+				const statusJson = await redisClient.hget(key, 'status');
+				return statusJson ? JSON.parse(statusJson) : null;
+			})
+		);
 
-	log.info(`Found ${Object.keys(items).length} items for user ${userUUID}`);
-
-	return items;
+		log.debug(`Retrieved ${items.length} items for user ${userUUID}`);
+		return items;
+	} catch (error) {
+		log.error('Error getting all items for user', error);
+		return null;
+	}
 };
 
 // reset whole queue
-export const resetQueue = async (log: any) => {
-	log.info('Resetting queue');
-	let cursor = '0';
-
-	do {
-		// Use SCAN to find keys related to the queue, with a pattern of 'queue:*'
-		const result = await redisClient.scan(cursor, 'MATCH', 'queue:*');
-		cursor = result[0]; // Update cursor for the next SCAN iteration
-
-		// result[1] contains the list of keys that match the pattern 'queue:*'
-		for (const key of result[1]) {
-			// Delete each key found
-			await redisClient.del(key);
+export const ResetJobs = async (log: any) => {
+	try {
+		const keys = await redisClient.keys('job:*');
+		if (keys.length > 0) {
+			await redisClient.del(keys);
+			log.debug('Reset all jobs');
 		}
-	} while (cursor !== '0'); // Continue until SCAN returns a cursor of '0', indicating completion
-
-	log.info('Queue has been reset');
+	} catch (error) {
+		log.error('Error resetting jobs', error);
+	}
 };
