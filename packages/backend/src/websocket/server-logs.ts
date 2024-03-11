@@ -16,7 +16,12 @@ export const route = {
 		}
 	]
 };
-
+interface UpdateStatus {
+	action: string;
+	itemId: string;
+	status: string;
+	userUUID: string;
+}
 // queue websocket handles updating the user on the status of their uploads
 export const run = async (connection: SocketStream, req: FastifyRequest) => {
 	const { uuid } = req.params as { uuid: string };
@@ -32,8 +37,10 @@ export const run = async (connection: SocketStream, req: FastifyRequest) => {
 
 	redisSub.on('message', (channel, message) => {
 		log.info(`Received message from ${channel}: ${message}`);
+		const updateMessage = JSON.parse(message) as UpdateStatus;
+		const formattedMessage = `${updateMessage.itemId} [${updateMessage.userUUID}] - ${updateMessage.status}`;
 		// Send the message to the user
-		connection.socket.send(JSON.stringify({ type: 'UPDATE', message }));
+		connection.socket.send(JSON.stringify({ event: 'ACTIVE', formattedMessage }));
 	});
 
 	redisSub.on('error', error => {
@@ -45,7 +52,7 @@ export const run = async (connection: SocketStream, req: FastifyRequest) => {
 	connection.socket.send(
 		JSON.stringify({
 			event: 'INFO',
-			message: 'Server logs websocket connection established'
+			formattedMessage: `${uuid} - Connected successfully!`
 		})
 	);
 

@@ -9,6 +9,7 @@ import { http5xxErrorSchema } from '@/structures/schemas/HTTP5xxError.js';
 import { constructFilePublicLink, uploadFilefromURL } from '@/utils/File.js';
 import { log } from '@/utils/Logger.js';
 import { addToQueue, updateStatus } from '@/utils/RedisQueue.js';
+import type { ItemData } from '@/utils/RedisQueue.js';
 import { validateAlbum } from '@/utils/UploadHelpers.js';
 export const schema = {
 	summary: 'Upload file from a URL',
@@ -51,8 +52,14 @@ export const options = {
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	// random item id
-	const itemId = Math.random().toString(36).slice(7).toString();
-	await addToQueue(req.user.uuid, itemId, 'pending');
+	const jobId = Math.random().toString(36).slice(7).toString();
+	let itemData: ItemData = {
+		status: 'pending',
+		jobID: jobId,
+		fileID: '',
+		outcome: 0
+	};
+	await addToQueue(req.user.uuid, itemData);
 	if (!req.user) {
 		log.error('Missing user information');
 		void res.internalServerError('Missing user information');
@@ -60,10 +67,18 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 	}
 
 	let { url } = req.body as { url: string };
-	await updateStatus(req.user.uuid, itemId, 'downloading - ' + url);
+	itemData = {
+		...itemData,
+		status: 'downloading - ' + url
+	};
+	await updateStatus(req.user.uuid, itemData);
 	// if twitter url, get image
 	if (url.includes('twitter.com') || url.includes('x.com')) {
-		await updateStatus(req.user.uuid, itemId, 'running twitter script');
+		itemData = {
+			...itemData,
+			status: 'running twitter script'
+		};
+		await updateStatus(req.user.uuid, itemData);
 		let browser;
 		if (process.env.NODE_ENV === 'production') {
 			browser = await puppeteer.connect({ browserWSEndpoint: 'ws://browserless:3000' });
@@ -73,7 +88,11 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 
 		const page = await browser.newPage();
 		await page.goto(url, { waitUntil: 'networkidle2' }); // Wait for the page to load completely
-		await updateStatus(req.user.uuid, itemId, 'opening - ' + url);
+		itemData = {
+			...itemData,
+			status: 'opening - ' + url
+		};
+		await updateStatus(req.user.uuid, itemData);
 		// Extract the image URL
 		const imageUrl = await page.evaluate(() => {
 			const images = document.querySelectorAll('img');
@@ -100,10 +119,17 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			// Convert the URL object back to a string
 			url = urlObj.toString();
 			// Here you can proceed to download the image or use the URL as needed
-			await updateStatus(req.user.uuid, itemId, 'image found - ' + url);
+			itemData = {
+				...itemData,
+				status: 'image found - ' + url
+			};
+			await updateStatus(req.user.uuid, itemData);
 		} else {
 			console.log('No image found in the tweet.');
-			await updateStatus(req.user.uuid, itemId, 'no image found treating as normal url');
+			await updateStatus(req.user.uuid, {
+				...itemData,
+				status: 'no image found'
+			});
 		}
 	}
 

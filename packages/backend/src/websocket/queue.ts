@@ -35,28 +35,45 @@ export const run = async (connection: SocketStream, req: FastifyRequest) => {
 		log.info(`Received redis message from ${channel}: ${message}`);
 		// Send the message to the user
 		const items = await getAllItemsForUser(uuid);
-		connection.socket.send(
-			JSON.stringify({
-				type: 'UPDATE',
-				items // items: Record<string, string>
-			})
-		);
+		for (const item of Object.values(items)) {
+			connection.socket.send(
+				JSON.stringify({
+					type: 'UPDATE',
+					fileID: item.fileID,
+					jobID: item.jobID,
+					outcome: item.outcome,
+					status: item.status
+				})
+			);
+		}
 	});
 
 	const items = await getAllItemsForUser(uuid);
-
+	/*
+	export interface ItemData {
+	fileID: string;
+	jobID: string;
+	outcome: number;
+	status: string; // Use 'number' type for integers in TypeScript
+}
+	*/
 	// Send a message immediately upon connection of all items in the queue
-	connection.socket.send(
-		JSON.stringify({
-			type: 'INITIAL',
-			items
-		})
-	);
+	for (const item of Object.values(items)) {
+		connection.socket.send(
+			JSON.stringify({
+				type: 'INIT',
+				fileID: item.fileID,
+				jobID: item.jobID,
+				outcome: item.outcome,
+				status: item.status
+			})
+		);
+	}
 
 	// Setup event listener for incoming messages
 	connection.socket.on('message', (data, isBinary) => {
 		let messageText;
-		if (isBinary) {
+		if (isBinary) {p
 			// If the message is binary, you might want to handle it differently
 			// For example, converting a Buffer to a string (assuming UTF-8 encoding)
 			if (Buffer.isBuffer(data)) {

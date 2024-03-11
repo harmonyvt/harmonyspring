@@ -16,6 +16,7 @@ import prisma from '@/structures/database.js';
 import type { FileInProgress, RequestUser, User } from '@/structures/interfaces.js';
 import { SETTINGS } from '@/structures/settings.js';
 import { log } from '@/utils/Logger.js';
+import type { ItemData } from './RedisQueue.js';
 import { updateStatus } from './RedisQueue.js';
 import { generateThumbnails, getFileThumbnail, removeThumbs } from './Thumbnails.js';
 import { getHost } from './Util.js';
@@ -410,28 +411,38 @@ export const uploadFilefromURL = async ({
 	albumId,
 	user,
 	ip,
-	jobId
+	itemData
 }: {
 	albumId?: number | null;
 	ip: string;
-	jobId: string;
+	itemData: ItemData;
 	url: string;
 	user: RequestUser | User | undefined;
 }) => {
 	if (!user?.uuid) {
-		await updateStatus('', jobId, 'error - missing user information');
+		await updateStatus('', {
+			...itemData,
+			status: 'error',
+			outcome: 1
+		});
 		throw new Error('Missing user information');
 	}
 
 	const uniqueIdentifier = await getUniqueFileIdentifier();
 	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
 	log.debug(`> Name for upload: ${uniqueIdentifier}`);
-	await updateStatus(user?.uuid, jobId, 'attempting to upload - ' + uniqueIdentifier);
+	await updateStatus(user?.uuid, {
+		...itemData,
+		status: 'file identifier generated - ' + uniqueIdentifier
+	});
 	// Download the file to a temporary location
 	const tempPath = fileURLToPath(new URL(`../../../../uploads/tmp/${uniqueIdentifier}`, import.meta.url));
 	// dont use validatedURL directly, it may be not have the params to fetch the file
 	await jetpack.writeAsync(tempPath, await (await fetch(url)).buffer());
-	await updateStatus(user?.uuid, jobId, 'file downloaded - ' + uniqueIdentifier);
+	await updateStatus(user?.uuid, {
+		...itemData,
+		status: 'file downloaded - ' + uniqueIdentifier
+	});
 
 	// Determine the file type
 	const fileType = await fileTypeFromFile(tempPath).catch(error => {
@@ -442,7 +453,10 @@ export const uploadFilefromURL = async ({
 	const newFileName = `${uniqueIdentifier}${fileType ? `.${fileType.ext}` : ''}`;
 	log.debug(`> New file name with extension: ${newFileName}`);
 
-	await updateStatus(user?.uuid, jobId, 'file type determined - ' + newFileName);
+	await updateStatus(user?.uuid, {
+		...itemData,
+		status: 'file type determined - ' + newFileName
+	});
 
 	// Rename the file with the correct extension
 	const newPath = fileURLToPath(new URL(`../../../../uploads/${newFileName}`, import.meta.url));
@@ -464,7 +478,11 @@ export const uploadFilefromURL = async ({
 		source: url
 	};
 
-	await updateStatus(user?.uuid, jobId, 'attempting to store file - ' + newFileName);
+	await updateStatus(user?.uuid, {
+		...itemData,
+		fileID: newFileName,
+		status: 'file stored - ' + newFileName
+	});
 
 	let uploadedFile;
 	const fileOnDb = await checkFileHashOnDB(user, file);
@@ -477,7 +495,10 @@ export const uploadFilefromURL = async ({
 		void generateThumbnails({ filename: savedFile.file.name });
 	}
 
-	await updateStatus(user?.uuid, jobId, 'file stored - ' + newFileName);
+	await updateStatus(user?.uuid, {
+		...itemData,
+		status: 'file created - ' + uploadedFile.name
+	});
 	return uploadedFile;
 };
 
