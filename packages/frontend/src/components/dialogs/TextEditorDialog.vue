@@ -43,6 +43,8 @@
 						<InputWithLabel v-model="snippetTitle" label="Snippet title" name="title" />
 					</div>
 					<div class="ml-8 w-40">
+						<Label for="isStatus" class="mb-2">Visibility: {{ isStatus ? 'Private' : 'Public' }}</Label>
+						<Switch v-model="isStatus" @click="updateStatus" />
 						<Label for="languages" class="mb-2">Choose a language</Label>
 						<select
 							id="languages"
@@ -88,6 +90,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Label } from '@/components/ui/label';
 import { createSnippet } from '~/use/api';
 import { hljs, supportedLanguages } from '~/use/highlight';
+import Switch from '../ui/switch/Switch.vue';
 
 const props = defineProps<{
 	content: string;
@@ -102,6 +105,12 @@ const showPostCreate = ref(false);
 const createdSnippet = ref({ uuid: '', raw: '', link: '' });
 const timer = ref<any>();
 const queryClient = useQueryClient();
+const isStatus = ref(false);
+
+const updateStatus = () => {
+	isStatus.value = !isStatus.value;
+	console.log(isStatus.value);
+};
 
 const onOpen = async (isOpen: boolean) => {
 	if (!isOpen) return;
@@ -153,8 +162,13 @@ const doCreateSnippet = async () => {
 	const snippet = await createSnippet(
 		snippetTitle.value ?? 'Untitled',
 		inputValue.value,
-		chosenLanguage.value ?? 'plaintext'
+		chosenLanguage.value ?? 'plaintext',
+		isStatus.value
 	);
+	if (isStatus.value) {
+		return;
+	}
+
 	showPostCreate.value = true;
 	createdSnippet.value = snippet?.snippet;
 	queryClient.invalidateQueries({ queryKey: ['snippets'] });

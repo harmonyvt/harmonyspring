@@ -92,7 +92,9 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 					path: `${tmpDir}/${filename}`,
 					type: mimeType?.mime ?? 'application/octet-stream',
 					size: String(entry.size)
-				}
+				},
+				// UPDATE: itemId: ''
+				itemId: ''
 			});
 		}
 	} catch (error) {

@@ -1,25 +1,38 @@
-version: "3.7"
+version: "3.8"
 
 services:
-  harmonyspring:
-    image: ghcr.io/harmonyvt/harmonyspring:latest
-    container_name: harmonyspring
-    build:
-      context: ./
-      dockerfile: ./Dockerfile
-    volumes:
-      - ./database:/home/node/harmonyspring/database:rw
-      - ./uploads:/home/node/harmonyspring/uploads:rw
-      - ./logs:/home/node/harmonyspring/logs:rw
-    ports:
-      - 731:8000
-    restart: unless-stopped
+    harmonyspring:
+        image: ghcr.io/harmonyvt/harmonyspring:latest
+        container_name: harmonyspring
+        build:
+            context: ./
+            dockerfile: ./Dockerfile
+        volumes:
+            - ./database:/home/node/harmonyspring/database:rw
+            - ./uploads:/home/node/harmonyspring/uploads:rw
+            - ./logs:/home/node/harmonyspring/logs:rw
+        ports:
+            - 731:8000
+        restart: unless-stopped
 
-  browserless:
-    image: browserless/chrome:latest
-    container_name: browserless
-    ports:
-      - 3000:3000
-    environment:
-      - MAX_CONCURRENT_SESSIONS=10
-    restart: unless-stopped
+    browserless:
+        image: browserless/chrome:latest
+        container_name: browserless
+        ports:
+            - 3000:3000
+        environment:
+            - MAX_CONCURRENT_SESSIONS=10
+        restart: unless-stopped
+
+    dragonfly:
+        image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+        container_name: dragonfly
+        ulimits:
+            memlock: -1
+        ports:
+            - "6379:6379"
+        volumes:
+            - dragonflydata:/data
+
+volumes:
+    dragonflydata:

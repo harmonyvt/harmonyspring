@@ -1,6 +1,7 @@
 import process from 'node:process';
 import { URL, fileURLToPath, pathToFileURL } from 'node:url';
 import { inspect } from 'node:util';
+import type { SocketStream } from '@fastify/websocket';
 import type { FastifyInstance, FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
@@ -8,7 +9,6 @@ import jetpack from 'fs-jetpack';
 import { addSpaces } from '@/utils/Util.js';
 import type { RouteOptions } from './interfaces.js';
 import { SETTINGS } from './settings.js';
-
 const defaultMiddlewares = ['ban'];
 
 export default {
@@ -158,6 +158,36 @@ export default {
 			} catch (error) {
 				// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
 				server.log.error(routeFile);
+				server.log.error(error);
+			}
+		}
+
+		// file all websocket files
+		const websocketFiles = await jetpack.findAsync(fileURLToPath(new URL('../websocket', import.meta.url)), {
+			matching: `*.${extension}`
+		});
+
+		for (const websocketFile of websocketFiles) {
+			try {
+				const websocket = await import(pathToFileURL(websocketFile).href);
+				const route = websocket.route;
+
+				if (!route.url) {
+					server.log.warn(`Found websocket without URL or METHOD - ${websocketFile}`);
+					continue;
+				}
+
+				server.get(
+					route.url,
+					{
+						websocket: true
+					},
+					(connection: SocketStream, req: FastifyRequest) => websocket.run(connection, req)
+				);
+
+				server.log.debug(`Found websocket | ${route.url}`);
+			} catch (error) {
+				server.log.error(websocketFile);
 				server.log.error(error);
 			}
 		}

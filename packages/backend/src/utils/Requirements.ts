@@ -2,6 +2,7 @@ import process from 'node:process';
 import { URL, fileURLToPath } from 'node:url';
 import jetpack from 'fs-jetpack';
 import { lookpath } from 'lookpath';
+import puppeteer from 'puppeteer-core';
 import YTDlpWrap from 'yt-dlp-wrap';
 export default async (log: any) => {
 	const nodeMajorVersion = process.versions.node.split('.')[0];
@@ -11,6 +12,27 @@ export default async (log: any) => {
 	}
 
 	log.info('Node version: OK');
+	if (process.env.NODE_ENV === 'production') {
+		await puppeteer
+			.connect({ browserWSEndpoint: 'ws://browserless:3000' })
+			.then(() => {
+				log.info('puppeteer: OK');
+			})
+			.catch((error: any) => {
+				log.error('puppeteer: ' + error);
+				process.exit(1);
+			});
+	} else {
+		await puppeteer
+			.connect({ browserWSEndpoint: 'ws://localhost:3000' })
+			.then(() => {
+				log.info('puppeteer: OK');
+			})
+			.catch((error: any) => {
+				log.error('puppeteer: ' + error);
+				process.exit(1);
+			});
+	}
 
 	const ffmpegExists = await lookpath('ffmpeg');
 	if (!ffmpegExists) {
@@ -55,12 +77,4 @@ export default async (log: any) => {
 	});
 
 	log.info('yt-dlp: OK');
-
-	const isDockerCompose = process.env.COMPOSE_PROJECT_NAME !== undefined;
-
-	if (isDockerCompose) {
-		log.info('Running in Docker Compose environment');
-	} else {
-		log.info('Not running in Docker Compose environment');
-	}
 };

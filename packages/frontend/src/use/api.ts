@@ -609,9 +609,9 @@ export const searchFiles = async (text: string, page: number, limit = 50) => {
 	}
 };
 
-export const createSnippet = async (name: string, content: string, language: string) => {
+export const createSnippet = async (name: string, content: string, language: string, status: boolean) => {
 	try {
-		const data = await request.post('snippet/create', { name, content, language });
+		const data = await request.post('snippet/create', { name, content, language, status });
 		debug('createSnippet', data);
 		if (data.message) sendSuccessToast(data.message);
 		return data;
