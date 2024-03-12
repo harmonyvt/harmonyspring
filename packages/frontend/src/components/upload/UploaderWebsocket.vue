@@ -64,11 +64,34 @@ export interface ItemData {
 }
 const userStore = useUserStore();
 const ownUser = computed(() => userStore.user);
+// Dynamically determine the WebSocket host based on the environment
+const wsHost = computed(() => {
+	// if not secure return localhost/ip + port
+	// eslint-disable-next-line n/prefer-global/url
+	const reference = new URL(import.meta.url);
+	if (reference.protocol === 'https:') {
+		// eslint-disable-next-line n/prefer-global/url
+		return new URL(import.meta.url).hostname;
+	} else {
+		// eslint-disable-next-line n/prefer-global/url
+		return `${new URL(import.meta.url).hostname}:${new URL(import.meta.url).port}`;
+	}
+});
+const secure = computed(() => {
+	// if import.meta.url.protocol is 'https:', then return secure websocket else return insecure
+	// eslint-disable-next-line n/prefer-global/url
+	const reference = new URL(import.meta.url);
+	if (reference.protocol === 'https:') {
+		return 'wss';
+	} else {
+		return 'ws';
+	}
+});
 const {
 	data: jobData,
 	send: jobSend,
 	close: jobClose
-} = useWebSocket(`ws://localhost:8000/queue/${ownUser.value.uuid}`, {
+} = useWebSocket(`${secure.value}://${wsHost.value}/queue/${ownUser.value.uuid}`, {
 	autoReconnect: false
 });
 
