@@ -580,18 +580,31 @@ export const handleUploadFile = async ({
 	user,
 	ip,
 	upload,
-	album
+	album,
+	itemId
 }: {
 	album?: number | null | undefined;
 	ip: string;
+	itemId: string;
 	upload: { name: string; path: string; size: string; type: string };
 	user?: RequestUser | User | undefined;
 }) => {
 	// Assign a unique identifier to the file
 	const uniqueIdentifier = await getUniqueFileIdentifier();
-	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
+	if (!uniqueIdentifier) {
+		await updateStatus(
+			user?.uuid as string,
+			createItemData(itemId, createStatus('Error', 'Could not generate unique identifier', itemId))
+		);
+		throw new Error('Could not generate unique identifier.');
+	}
+
 	const newFileName = String(uniqueIdentifier) + extname(upload.name);
 	log.debug(`> Name for upload: ${newFileName}`);
+	await updateStatus(
+		user?.uuid as string,
+		createItemData(itemId, createStatus('InProgress', 'Generating unique identifier', itemId))
+	);
 
 	// Move file to permanent location
 	const newPath = fileURLToPath(new URL(`../../../../uploads/${newFileName}`, import.meta.url));
@@ -608,10 +621,13 @@ export const handleUploadFile = async ({
 		isWatched: false,
 		source: ''
 	};
-
 	let uploadedFile;
 	const fileOnDb = await checkFileHashOnDB(user, file);
 	if (fileOnDb?.repeated) {
+		await updateStatus(
+			user?.uuid as string,
+			createItemData(itemId, createStatus('Finish', 'File uploaded', itemId))
+		);
 		uploadedFile = fileOnDb.file;
 		await deleteTmpFile(upload.path);
 	} else {
@@ -620,6 +636,10 @@ export const handleUploadFile = async ({
 		const savedFile = await storeFileToDb(user ? user : undefined, file, album ? album : undefined);
 
 		uploadedFile = savedFile.file;
+		await updateStatus(
+			user?.uuid as string,
+			createItemData(itemId, createStatus('Finish', 'File uploaded', itemId))
+		);
 
 		// Generate thumbnails
 		void generateThumbnails({ filename: savedFile.file.name });

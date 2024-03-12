@@ -9,11 +9,21 @@
 		<button
 			type="button"
 			class="w-full h-12 rounded-md bg-[#2a4a5a] border-4 shadow-lg border-[#303436]"
+			@click="getClipboardContent"
+		>
+			<div class="flex items-center justify-center h-full">
+				<Clipboard class="w-6 h-6" />
+				PASTE
+			</div>
+		</button>
+		<button
+			type="button"
+			class="w-full h-12 rounded-md bg-[#2a4a5a] border-4 shadow-lg border-[#303436]"
 			@click="fetchRequest"
 		>
 			<div class="flex items-center justify-center h-full">
 				<Download class="w-6 h-6" />
-				FETCH YTDLP
+				FETCH VIDEO
 			</div>
 		</button>
 	</template>
@@ -28,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { Download, Cloud } from 'lucide-vue-next';
+import { Download, Cloud, Clipboard } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useUserStore, useSettingsStore } from '~/store';
 const userStore = useUserStore();
@@ -58,5 +68,15 @@ const fetchRequest = async () => {
 	await result.then(res => {
 		console.log(res);
 	});
+};
+
+const getClipboardContent = async () => {
+	try {
+		const clipboardContent = await navigator.clipboard.readText();
+		console.log('Clipboard content:', clipboardContent);
+		url.value = clipboardContent;
+	} catch (error) {
+		console.error('Failed to read clipboard content:', error);
+	}
 };
 </script>

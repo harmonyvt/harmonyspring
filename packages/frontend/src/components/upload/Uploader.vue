@@ -1,41 +1,80 @@
 <template>
-	<div class="w-80 h-fit max-h-[320px] flex-col mobile:relative right-0 top-0 space-y-2 mobile:mb-4">
-		<div
-			id="upload"
-			class="w-80 h-80 mobile:h-16 right-0 top-0 bg-[#181a1b] rounded-3xl mobile:rounded-lg border-4 shadow-lg flex items-center justify-center mobile:justify-start blueprint flex-col cursor-pointer hover:border-[#3b3e40] transform-gpu transition-all"
-			:class="{
-				'border-blue-400': isDragging,
-				'border-[#303436]': !isDragging
-			}"
-			@click="triggerFileInput"
-			@drop.prevent="event => dropHandler(event)"
-			@dragenter.prevent="onDragStart"
-			@dragend.prevent="onDragEnd"
-			@dragexit.prevent="onDragEnd"
-			@dragleave.prevent="onDragEnd"
-			@dragover.prevent
-		>
+	<div
+		class="w-7/12 h-80 right-0 top-0 bg-[#181a1b] rounded-3xl mobile:rounded-lg border-4 shadow-lg flex items-center justify-center blueprint flex-col cursor-pointer hover:border-[#3b3e40] transform-gpu transition-all"
+	>
+		<div class="flex-grow pt-10">
+			<Select v-model="selectedOption">
+				<SelectTrigger>
+					<SelectValue placeholder="Select an uploader" />
+				</SelectTrigger>
+				<SelectContent>
+					<ScrollArea>
+						<SelectGroup class="max-h-[480px]">
+							<SelectItem v-for="(option, index) in selectOption" :key="index" :value="option">
+								{{ option }}
+							</SelectItem>
+						</SelectGroup>
+					</ScrollArea>
+				</SelectContent>
+			</Select>
+		</div>
+		<div id="upload" class="flex-grow">
 			<template v-if="isUploadEnabled">
-				<UploadCloudIcon class="h-12 w-12 pointer-events-none mobile:hidden" />
-				<h3 class="font-bold text-center mt-4 pointer-events-none">
-					<p class="text-blue-400 mobile:visible invisible h-0 mobile:h-12">
-						TAP TO UPLOAD <span class="text-light-100 ml-2">({{ formatBytes(maxFileSize) }} max)</span>
-					</p>
-					<p class="mobile:invisible">DROP FILES OR <br /><span class="text-blue-400">CLICK HERE</span></p>
-				</h3>
-				<p class="text-center mt-4 w-3/4 pointer-events-none mobile:hidden mobile:h-0">
-					{{ formatBytes(maxFileSize) }} max per file.
-					<span
-						class="block mt-4 text-blue-400 hover:text-blue-500 pointer-events-auto"
-						@click.stop.prevent="() => {}"
-					>
-						<TextEditorDialog :content="pastedText" :open="isTextEditorOpen"
-							>Click here if you rather upload text or try pasting it now.</TextEditorDialog
+				<!-- The content that changes based on the selected option -->
+				<div class="content">
+					<div v-if="selectedOption === 'GENERAL'"><UploaderLink /></div>
+					<div v-else-if="selectedOption === 'VIDEO'"><UploaderYTDLP /></div>
+					<div v-else-if="selectedOption === 'FILE'">
+						<div
+							id="upload"
+							:class="{
+								'border-blue-400': isDragging,
+								'border-[#303436]': !isDragging
+							}"
+							@click="triggerFileInput"
+							@drop.prevent="event => dropHandler(event)"
+							@dragenter.prevent="onDragStart"
+							@dragend.prevent="onDragEnd"
+							@dragexit.prevent="onDragEnd"
+							@dragleave.prevent="onDragEnd"
+							@dragover.prevent
 						>
-					</span>
-				</p>
-
-				<input ref="inputUpload" type="file" class="hidden" multiple @change="onFileChanged($event)" />
+							<div class="flex flex-col items-center justify-center">
+								<UploadCloudIcon class="h-12 w-12 pointer-events-none mobile:hidden" />
+								<h3 class="font-bold text-center mt-4 pointer-events-none">
+									<p class="text-blue-400 mobile:visible invisible h-0 mobile:h-12">
+										TAP TO UPLOAD
+										<span class="text-light-100 ml-2">({{ formatBytes(maxFileSize) }} max)</span>
+									</p>
+									<p class="mobile:invisible">
+										DROP FILES OR <br /><span class="text-blue-400">CLICK HERE</span>
+									</p>
+								</h3>
+								<p class="text-center mt-4 w-3/4 pointer-events-none mobile:hidden mobile:h-0">
+									{{ formatBytes(maxFileSize) }} max per file.
+									<span
+										class="block mt-4 text-blue-400 hover:text-blue-500 pointer-events-auto"
+										@click.stop.prevent="() => {}"
+									>
+									</span>
+								</p>
+							</div>
+							<input
+								ref="inputUpload"
+								type="file"
+								class="hidden"
+								multiple
+								@change="onFileChanged($event)"
+							/>
+						</div>
+					</div>
+					<div v-else-if="selectedOption === 'TEXT'">
+						<TextEditorDialog :content="clipboard">
+							<Button class="shrink-0" @click="getClipboardContent">Create new snippet</Button>
+						</TextEditorDialog>
+					</div>
+					<div v-else></div>
+				</div>
 			</template>
 			<template v-else>
 				<h3
@@ -45,7 +84,6 @@
 				</h3>
 			</template>
 		</div>
-		<AlbumDropdown v-if="isLoggedIn" />
 	</div>
 </template>
 
@@ -53,33 +91,44 @@
 import { chibiUploader, type UploaderOptions } from '@chibisafe/uploader-client';
 import { useWindowSize } from '@vueuse/core';
 import { UploadCloudIcon } from 'lucide-vue-next';
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { toast } from 'vue-sonner';
-import TextEditorDialog from '@/components/dialogs/TextEditorDialog.vue';
-import AlbumDropdown from '~/components/dropdown/AlbumDropdown.vue';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import UploaderLink from '~/components/upload/UploaderLink.vue';
+import UploaderYTDLP from '~/components/upload/UploaderYTDLP.vue';
 import { useUserStore, useUploadsStore, useSettingsStore, useAlbumsStore } from '~/store';
 import { getFileExtension, formatBytes } from '~/use/file';
 import { debug } from '~/use/log';
-// import { chibiUploader, type UploaderOptions } from '../../../../../../chibisafe-uploader/packages/uploader-client/lib';
+import Button from '../buttons/Button.vue';
+import TextEditorDialog from '../dialogs/TextEditorDialog.vue';
 
 const userStore = useUserStore();
 const uploadsStore = useUploadsStore();
 const settingsStore = useSettingsStore();
 const albumsStore = useAlbumsStore();
-
+// clipboard value
+const clipboard = ref('');
 const isLoggedIn = computed(() => userStore.user.loggedIn);
 const token = computed(() => userStore.user.token);
 const files = ref<File[] | null>();
 const inputUpload = ref<HTMLInputElement>();
 const isDragging = ref(false);
-const pastedText = ref('');
-const isTextEditorOpen = ref(false);
-
+const selectedOption = ref('');
+const selectOption = ['GENERAL', 'VIDEO', 'FILE', 'TEXT'];
+const isOpen = ref(false);
 const isUploadEnabled = computed(() => {
 	if (settingsStore.publicMode) return true;
 	return isLoggedIn.value;
 });
-
+watch(selectedOption, newValue => {
+	if (newValue === 'TEXT') {
+		isOpen.value = true;
+		console.log(isOpen.value);
+	} else {
+		isOpen.value = false;
+		console.log(isOpen.value);
+	}
+});
 const maxFileSize = computed(() => settingsStore.maxSize);
 const chunkSize = computed(() => settingsStore.chunkSize);
 const isMobile = ref(false);
@@ -103,36 +152,6 @@ const dropHandler = (event: DragEvent) => {
 	onDragEnd();
 };
 
-/*
-const pasteHandler = (event: ClipboardEvent) => {
-	if (!event.clipboardData) return;
-
-	if (event.clipboardData.files?.length) {
-		for (const file of Array.from(event.clipboardData.files)) {
-			if (!file?.type) continue;
-
-			const fileData = new File([file], `pasted-file.${getFileExtension(file)}`, {
-				type: file.type
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-use-before-define
-			void processFile(fileData);
-		}
-	} else {
-		// If the dialog is already open, don't paste as it would overwrite the current text
-		if (isTextEditorOpen.value) return;
-
-		// If the clipboard doesn't have text, don't do anything
-		const text = event.clipboardData.getData('text');
-		if (!text) return;
-
-		// If the clipboard has text, open the dialog with the text
-		pastedText.value = text;
-		event.preventDefault();
-		isTextEditorOpen.value = true;
-	}
-};
-*/
 const uploadFile = async ({
 	file,
 	endpoint,
@@ -317,6 +336,16 @@ const onFileChanged = ($event: Event) => {
 		for (let i = 0; i < target.files.length; i++) {
 			void processFile(target.files[i] as File);
 		}
+	}
+};
+
+const getClipboardContent = async () => {
+	try {
+		const clipboardContent = await navigator.clipboard.readText();
+		console.log('Clipboard content:', clipboardContent);
+		clipboard.value = clipboardContent;
+	} catch (error) {
+		console.error('Failed to read clipboard content:', error);
 	}
 };
 

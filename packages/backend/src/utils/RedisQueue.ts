@@ -1,10 +1,10 @@
 import { log } from './Logger.js';
 import { redisClient } from './RedisClient.js';
-
-// Type definitions (if using TypeScript)
 export type Status = {
 	date: string;
 	event: string;
+	fileID: string;
+	fileURL: string;
 	jobID: string;
 	message: string;
 };
@@ -18,7 +18,6 @@ export type ItemData = {
 export const addItem = async (userUUID: string, itemData: ItemData) => {
 	try {
 		const jobKey = `job:${userUUID}:${itemData.itemId}`;
-
 		// Store item data in a hash
 		await redisClient.hset(jobKey, 'status', JSON.stringify(itemData.status));
 
@@ -35,7 +34,6 @@ export const addItem = async (userUUID: string, itemData: ItemData) => {
 export const updateStatus = async (userUUID: string, itemData: ItemData) => {
 	try {
 		const jobKey = `job:${userUUID}:${itemData.itemId}`;
-
 		// Update item's status in its hash
 		await redisClient.hset(jobKey, 'status', JSON.stringify(itemData.status));
 		log.debug(`Updated status for item ${itemData.itemId} to ${itemData.status.message}`);
@@ -45,20 +43,20 @@ export const updateStatus = async (userUUID: string, itemData: ItemData) => {
 
 		log.debug(`Updated item status for user ${userUUID}`);
 	} catch (error) {
-		log.error('Error adding item to queue', error);
+		log.error('Error updating item to queue', error);
 	}
 };
 
 // Remove an item's status
-export const removeStatus = async (userUUID: string, itemData: ItemData) => {
+export const removeStatus = async (userUUID: string, itemId: string) => {
 	try {
-		const jobKey = `job:${userUUID}:${itemData.itemId}`;
+		const jobKey = `job:${userUUID}:${itemId}`;
 
 		// Remove item's hash
 		await redisClient.del(jobKey);
 
 		// publish to the job channel
-		await redisClient.publish('job' + userUUID, JSON.stringify({ userUUID, itemData }));
+		await redisClient.publish('job' + userUUID, JSON.stringify({ userUUID, itemId }));
 
 		log.debug(`Removed item status for user ${userUUID}`);
 	} catch (error) {
@@ -106,10 +104,11 @@ export const getAllItemsForUser = async (userUUID: string) => {
 		);
 
 		log.debug(`Retrieved ${items.length} items for user ${userUUID}`);
-		for (const element of items) {
-			log.debug(`Item: ${element}`);
-		}
 
+		// put most recent date at top of list
+		items.sort((a, b) => {
+			return new Date(b.date).getTime() - new Date(a.date).getTime();
+		});
 		return items;
 	} catch (error) {
 		log.error('Error getting all items for user', error);
@@ -130,12 +129,14 @@ export const ResetJobs = async (log: any) => {
 	}
 };
 
-export function createStatus(event: string, message: string, jobID: string): Status {
+export function createStatus(event: string, message: string, jobID: string, fileID?: string, fileURL?: string): Status {
 	return {
 		date: new Date().toISOString(),
 		event,
 		jobID,
-		message
+		message,
+		fileID: fileID ?? '',
+		fileURL: fileURL ?? ''
 	};
 }
 

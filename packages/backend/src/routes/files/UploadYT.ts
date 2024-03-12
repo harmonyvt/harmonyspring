@@ -90,7 +90,10 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		const linkData = constructFilePublicLink({ req, fileName: file.name });
 		log.info(`File public link: ${linkData.url}`);
 
-		log.info('File updated on database');
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('Finish', 'File uploaded', itemId, file.name, linkData.url))
+		);
 
 		await res.status(200).send({
 			name: file.name,

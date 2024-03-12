@@ -1,8 +1,9 @@
+import { Buffer } from 'node:buffer';
 import type { SocketStream } from '@fastify/websocket';
 import type { FastifyRequest } from 'fastify';
 import { log } from '@/utils/Logger.js';
 import { redisSub } from '@/utils/RedisClient.js';
-import { getAllItemsForUser } from '@/utils/RedisQueue.js';
+import { getAllItemsForUser, removeStatus } from '@/utils/RedisQueue.js';
 
 export const route = {
 	url: '/queue/:uuid',
@@ -46,8 +47,28 @@ export const run = async (connection: SocketStream, req: FastifyRequest) => {
 	// Send a message immediately upon connection of all items in the queue
 	connection.socket.send(JSON.stringify({ items }));
 
+	// message to remove
+	connection.socket.on('message', async message => {
+		let messageString;
+		if (Buffer.isBuffer(message)) {
+			messageString = message.toString();
+		} else {
+			messageString = message;
+		}
+
+		const remove = JSON.parse(messageString as string) as RemoveMessage;
+		log.debug(`Queue websocket message: ${remove.action} ${remove.itemID}`);
+		await removeStatus(uuid, remove.itemID);
+		const items = await getAllItemsForUser(uuid);
+		connection.socket.send(JSON.stringify({ items }));
+	});
 	connection.socket.on('error', error => {
 		log.error(`Queue websocket error: ${error.message}`);
 		connection.socket.send(JSON.stringify({ type: 'ERROR', message: error.message }));
 	});
 };
+
+interface RemoveMessage {
+	action: string;
+	itemID: string;
+}

@@ -7,6 +7,7 @@ import type { RequestWithUser } from '@/structures/interfaces.js';
 import { http4xxErrorSchema } from '@/structures/schemas/HTTP4xxError.js';
 import { http5xxErrorSchema } from '@/structures/schemas/HTTP5xxError.js';
 import { responseMessageSchema } from '@/structures/schemas/ResponseMessage.js';
+import { log } from '@/utils/Logger.js';
 import { constructSnippetPublicLink, getUniqueSnippetIdentifier } from '@/utils/Snippet.js';
 
 export const schema = {
@@ -17,7 +18,7 @@ export const schema = {
 		name: z.string().optional().describe('The name of the snippet.'),
 		content: z.string().describe('The content of the snippet.'),
 		language: z.string().optional().describe('The language of the snippet.'),
-		private: z.boolean().optional().describe('Whether the snippet is private or not.')
+		status: z.boolean().optional().describe('Whether the snippet is private or not.')
 	}),
 	response: {
 		200: z.object({
@@ -51,12 +52,13 @@ export const options = {
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
-	const { name, content, language, _private } = req.body as {
-		_private: boolean;
+	const { name, content, language, status } = req.body as {
 		content: string;
 		language: string;
 		name: string;
+		status: boolean;
 	};
+	log.debug(name, content, language, status);
 
 	const now = moment.utc().toDate();
 	const uniqueIdentifier = await getUniqueSnippetIdentifier();
@@ -76,13 +78,13 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			uuid: uuidv4(),
 			createdAt: now,
 			editedAt: now,
-			private: _private
+			private: status
 		}
 	});
 
-	if (_private) {
+	if (status) {
 		return res.send({
-			message: 'Successfully created snippet'
+			message: 'Successfully created hidden snippet'
 		});
 	}
 

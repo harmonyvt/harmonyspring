@@ -1,36 +1,48 @@
 <template>
-	<div
-		class="flex w-full mt-16 flex-col rounded-md bg-[#181a1b] border-4 shadow-lg border-[#303436] items-center justify-center p-4 py-8 max-w-4xl"
-	>
+	<div class="flex w-full mt-16 flex-col rounded-md items-center justify-center p-4 py-8 max-w-4xl">
 		<div class="container px-1 md:px-6 max-w-3xl">
 			<div class="grid gap-4">
 				<template v-if="items.length > 0">
-					<h1 class="text-2xl font-bold tracking-tight text-white">Job List</h1>
 					<div
 						v-for="item in items"
 						:key="item.jobID"
-						class="border border-gray-200 rounded-lg overflow-hidden dark:border-gray-800"
+						class="border border-gray-600 rounded-lg p-4 dark:bg-gray-800"
 					>
-						<div class="grid gap-2 p-4 dark:bg-gray-800">
-							<div class="flex items-center gap-4">
-								<template v-if="item.event === 'InProgress'">
-									<ActivityIcon class="w-6 h-6 text-yellow-500 dark:text-yellow-400" />
-								</template>
-								<template v-else-if="item.event === 'Error'">
-									<BugIcon class="w-6 h-6 text-red-500 dark:text-red-400" />
-								</template>
-								<template v-else-if="item.event === 'Finish'">
-									<GoalIcon class="w-6 h-6 text-green-500 dark:text-green-400" />
-								</template>
-								<div class="grid gap-1">
-									<h3 class="font-semibold text-lg text-white">
-										{{ item.message }}
-									</h3>
-									<p class="text-sm text-gray-500 dark:text-gray-400">
-										{{ item.jobID }} - {{ item.date }} - {{ item.event }}
-									</p>
+						<div class="flex justify-between">
+							<a
+								:href="item.fileURL"
+								class="link cursor-pointer"
+								rel="noopener noreferrer"
+								target="_blank"
+							>
+								<div class="flex gap-4">
+									<template v-if="item.event === 'InProgress'">
+										<ActivityIcon class="w-6 h-6 text-yellow-500" />
+									</template>
+									<template v-else-if="item.event === 'Error'">
+										<BugIcon class="w-6 h-6 text-red-500" />
+									</template>
+									<template v-else-if="item.event === 'Finish'">
+										<GoalIcon class="w-6 h-6 text-green-500" />
+									</template>
+									<div class="grid gap-1">
+										<h3 class="text-lg font-semibold text-white">
+											{{ item.message }}
+										</h3>
+										<p class="text-sm text-gray-400">
+											Job ID: {{ item.jobID }} | Event: {{ item.event }} | File:
+											{{ item.fileID ?? 'N/A' }}
+										</p>
+									</div>
 								</div>
-							</div>
+							</a>
+							<Button
+								className="text-white border-gray-600 hover:border-red-500 hover:text-red-500"
+								variant="outline"
+								@click="removeJob(item.jobID)"
+							>
+								Remove
+							</Button>
 						</div>
 					</div>
 				</template>
@@ -41,7 +53,7 @@
 
 <script setup lang="ts">
 import { useWebSocket } from '@vueuse/core';
-import { ActivityIcon, GoalIcon, BugIcon} from 'lucide-vue-next';
+import { ActivityIcon, GoalIcon, BugIcon } from 'lucide-vue-next';
 import { computed, onUnmounted, ref, watchEffect } from 'vue';
 import { useUserStore } from '@/store';
 export interface ItemData {
@@ -52,10 +64,10 @@ export interface ItemData {
 }
 const userStore = useUserStore();
 const ownUser = computed(() => userStore.user);
-
 const {
-	data: jobsData,
-	close: jobsClose
+	data: jobData,
+	send: jobSend,
+	close: jobClose
 } = useWebSocket(`ws://localhost:8000/queue/${ownUser.value.uuid}`, {
 	autoReconnect: false
 });
@@ -70,18 +82,19 @@ export interface Item {
 	jobID: string;
 	event: string;
 	message: string;
-	date: string;
+	date: Date;
+	fileID: string;
+	fileURL: string;
 }
 
 onUnmounted(() => {
-	// logsClose();
-	jobsClose();
+	jobClose();
 });
 
 watchEffect(() => {
-	if (jobsData.value) {
+	if (jobData.value) {
 		try {
-			const message = JSON.parse(jobsData.value) as Message;
+			const message = JSON.parse(jobData.value) as Message;
 			console.log(message);
 			items.value = message.items;
 			console.log(items);
@@ -90,4 +103,9 @@ watchEffect(() => {
 		}
 	}
 });
+
+const removeJob = async (itemID: string) => {
+	console.log('Removing job:', itemID);
+	jobSend(JSON.stringify({ action: 'remove', itemID }));
+};
 </script>

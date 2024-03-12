@@ -11,6 +11,8 @@ import { http4xxErrorSchema } from '@/structures/schemas/HTTP4xxError.js';
 import { http5xxErrorSchema } from '@/structures/schemas/HTTP5xxError.js';
 import { SETTINGS } from '@/structures/settings.js';
 import { getUniqueFileIdentifier, constructFilePublicLink, deleteTmpFile, handleUploadFile } from '@/utils/File.js';
+import { log } from '@/utils/Logger.js';
+import { addItem, createItemData, createStatus, updateStatus } from '@/utils/RedisQueue.js';
 import { validateAlbum } from '@/utils/UploadHelpers.js';
 import { getUsedQuota } from '@/utils/User.js';
 
@@ -59,15 +61,24 @@ export const options = {
 	]
 };
 
-export const uploadToNetworkStorage = async (req: RequestWithUser, res: FastifyReply) => {
+export const uploadToNetworkStorage = async (req: RequestWithUser, res: FastifyReply, itemId: string) => {
+	await addItem(
+		req.user?.uuid as string,
+		createItemData(req.user.uuid, createStatus('InProgress', 'Preparing to upload', itemId))
+	);
 	const { contentType, size, name } = req.body as { contentType: string; name: string; size: number };
 	if (!contentType || !size || !name) {
 		void res.badRequest('Missing file information');
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('Failed', 'Missing file information', itemId))
+		);
 		return;
 	}
 
 	const quota = await getUsedQuota(req.user?.id as number);
 	if (quota?.overQuota) {
+		await updateStatus(req.user.uuid, createItemData(itemId, createStatus('Failed', 'Over quota', itemId)));
 		void res.forbidden('You are over your storage quota');
 		return;
 	}
@@ -79,17 +90,32 @@ export const uploadToNetworkStorage = async (req: RequestWithUser, res: FastifyR
 
 	const fileExtension = `.${name.split('.').pop()!}`.toLowerCase();
 	if (SETTINGS.blockedExtensions.includes(fileExtension)) {
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('Failed', 'File type is not allowed', itemId))
+		);
 		void res.badRequest('File type is not allowed.');
 		return;
 	}
 
 	// Assign a unique identifier to the file
 	const uniqueIdentifier = await getUniqueFileIdentifier();
-	if (!uniqueIdentifier) throw new Error('Could not generate unique identifier.');
+	if (!uniqueIdentifier) {
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('Failed', 'Could not generate unique identifier', itemId))
+		);
+		throw new Error('Could not generate unique identifier.');
+	}
 
+	await updateStatus(itemId, createItemData(itemId, createStatus('InProgress', 'Generating signed URL', itemId)));
 	try {
 		const { createS3Client } = await import('@/structures/s3.js');
 		const identifier = `${uniqueIdentifier}${fileExtension}`;
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('InProgress', 'Uploading to network storage', itemId))
+		);
 		const url = await getSignedUrl(
 			createS3Client(),
 			new PutObjectCommand({
@@ -100,20 +126,33 @@ export const uploadToNetworkStorage = async (req: RequestWithUser, res: FastifyR
 			}),
 			{ expiresIn: 3600 }
 		);
-
+		log.info(`File uploaded to network storage: ${identifier}`);
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('Finish', 'File uploaded', itemId, name, url))
+		);
 		await res.code(200).send({
 			url,
 			identifier,
 			publicUrl: `${SETTINGS.S3PublicUrl || SETTINGS.S3Endpoint}/${identifier}`
 		});
 	} catch (error) {
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('Failed', 'Could not generate signed URL', itemId))
+		);
 		req.log.error(error);
 		void res.internalServerError('Could not generate signed URL');
 	}
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
-	if (SETTINGS.useNetworkStorage) return uploadToNetworkStorage(req, res);
+	const itemId = Math.random().toString(36).slice(7).toString();
+	await addItem(
+		req.user?.uuid as string,
+		createItemData(itemId, createStatus('InProgress', 'Preparing to upload', itemId))
+	);
+	if (SETTINGS.useNetworkStorage) return uploadToNetworkStorage(req, res, itemId);
 
 	const tmpDir = fileURLToPath(new URL('../../../../../uploads/tmp', import.meta.url));
 	const maxChunkSize = SETTINGS.chunkSize;
@@ -121,6 +160,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 
 	const quota = await getUsedQuota(req.user?.id as number);
 	if (quota?.overQuota) {
+		await updateStatus(req.user.uuid, createItemData(itemId, createStatus('Failed', 'Over quota', itemId)));
 		void res.forbidden('You are over your storage quota');
 		return;
 	}
@@ -138,26 +178,48 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			debug: process.env.NODE_ENV !== 'production'
 		});
 
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('InProgress', 'Processing file', itemId))
+		);
+
 		if (upload.isChunkedUpload && !upload.ready) {
+			await updateStatus(
+				req.user.uuid,
+				createItemData(itemId, createStatus('InProgress', 'Uploading chunks', itemId))
+			);
 			return await res.code(204).send();
 		}
 
 		if (!upload.metadata.name) {
 			await deleteTmpFile(upload.path as string);
+			await updateStatus(
+				req.user.uuid,
+				createItemData(itemId, createStatus('Failed', 'Missing file name', itemId))
+			);
 			void res.badRequest('Missing file name.');
 			return;
 		}
 
 		const fileExtension = `.${upload.metadata.name.split('.').pop()!}`.toLowerCase();
 		if (SETTINGS.blockedExtensions.includes(fileExtension)) {
+			await updateStatus(
+				req.user.uuid,
+				createItemData(itemId, createStatus('Failed', 'File type is not allowed', itemId))
+			);
 			await deleteTmpFile(upload.path as string);
 			void res.badRequest('File type is not allowed.');
 			return;
 		}
 
+		await updateStatus(
+			itemId,
+			createItemData(req.user.uuid, createStatus('InProgress', 'Validating file', itemId))
+		);
 		// Check if the new uploaded file sends the user over the quota
 		const quotaAfterUpload = await getUsedQuota(req.user?.id as number, Number(upload.metadata.size));
 		if (quotaAfterUpload?.overQuota) {
+			await updateStatus(req.user.uuid, createItemData(itemId, createStatus('Failed', 'Over quota', itemId)));
 			await deleteTmpFile(upload.path as string);
 			void res.forbidden('You are over your storage quota');
 			return;
@@ -165,6 +227,10 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 
 		const album = await validateAlbum(req.headers.albumuuid as string, req.user ? req.user : undefined);
 
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('InProgress', 'Uploading to storage', itemId))
+		);
 		const uploadedFile = await handleUploadFile({
 			user: req.user,
 			ip: req.ip,
@@ -174,8 +240,14 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 				type: upload.metadata.type as string,
 				size: upload.metadata.size ?? '0'
 			},
-			album
+			album,
+			itemId
 		});
+
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('Finish', 'File uploaded', itemId, uploadedFile.name))
+		);
 
 		const linkData = constructFilePublicLink({ req, fileName: uploadedFile.name });
 		// Construct public link
@@ -183,7 +255,10 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			...uploadedFile,
 			...linkData
 		};
-
+		await updateStatus(
+			req.user.uuid,
+			createItemData(itemId, createStatus('Finish', 'File uploaded', itemId, uploadedFile.name, linkData.url))
+		);
 		await res.code(200).send(fileWithLink);
 	} catch (error: any) {
 		switch (error.message) {
@@ -202,6 +277,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 				break;
 		}
 
+		await updateStatus(req.user.uuid, createItemData(itemId, createStatus('Failed', error.message, itemId)));
 		res.log.error(error);
 	}
 };

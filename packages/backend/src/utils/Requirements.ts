@@ -4,9 +4,7 @@ import jetpack from 'fs-jetpack';
 import { lookpath } from 'lookpath';
 import puppeteer from 'puppeteer-core';
 import YTDlpWrap from 'yt-dlp-wrap';
-import { ResetJobs } from './RedisQueue.js';
 export default async (log: any) => {
-	await ResetJobs(log);
 	const nodeMajorVersion = process.versions.node.split('.')[0];
 	if (Number(nodeMajorVersion) < 18) {
 		log.error('harmonyspring needs node v18 or newer to run properly, please upgrade.');
@@ -14,7 +12,6 @@ export default async (log: any) => {
 	}
 
 	log.info('Node version: OK');
-
 	if (process.env.NODE_ENV === 'production') {
 		await puppeteer
 			.connect({ browserWSEndpoint: 'ws://browserless:3000' })
