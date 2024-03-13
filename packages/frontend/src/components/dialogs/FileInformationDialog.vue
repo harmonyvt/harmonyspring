@@ -55,13 +55,6 @@
 						</media-control-bar>
 					</media-controller>
 
-					<img
-						v-if="isFileImage(file)"
-						ref="fileElement"
-						:src="file.url"
-						class="h-full object-contain hidden md:block"
-						@load="onImageLoad"
-					/>
 					<span v-else class="text-light-100 h-full items-center hidden md:flex"
 						>Sorry but this file can't be previewed at this time.</span
 					>

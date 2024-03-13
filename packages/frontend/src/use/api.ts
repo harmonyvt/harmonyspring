@@ -144,9 +144,9 @@ export const getUserAdmin = async (uuid: string) => {
 	}
 };
 
-export const getFiles = async (page: number, limit = 50) => {
+export const getFiles = async (page: number, nsfw: boolean, limit = 50) => {
 	try {
-		const data = await request.get(`files?page=${page}&limit=${limit}`);
+		const data = await request.get(`files?page=${page}&limit=${limit}&nsfw=${nsfw}`);
 		debug('getFiles', data);
 		return data as File;
 	} catch (error: any) {
