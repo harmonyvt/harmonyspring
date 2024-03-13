@@ -109,6 +109,12 @@ export const getAllItemsForUser = async (userUUID: string) => {
 		items.sort((a, b) => {
 			return new Date(b.date).getTime() - new Date(a.date).getTime();
 		});
+
+		// reduce items to only the most recent 10
+		if (items.length > 10) {
+			items.length = 10;
+		}
+
 		return items;
 	} catch (error) {
 		log.error('Error getting all items for user', error);
