@@ -67,6 +67,7 @@ const userStore = useUserStore();
 const ownUser = computed(() => userStore.user);
 // Dynamically determine the WebSocket host based on the environment
 const wsHost = computed(() => {
+	if (import.meta.env.NODE_ENV === 'production') {
 		// eslint-disable-next-line n/prefer-global/url
 		const reference = new URL(import.meta.url);
 		if (reference.protocol === 'https:') {
@@ -76,6 +77,9 @@ const wsHost = computed(() => {
 			// eslint-disable-next-line n/prefer-global/url
 			return `${new URL(import.meta.url).hostname}:${new URL(import.meta.url).port}`;
 		}
+	} else {
+		return 'localhost:8000';
+	}
 });
 const secure = computed(() => {
 	// if import.meta.url.protocol is 'https:', then return secure websocket else return insecure

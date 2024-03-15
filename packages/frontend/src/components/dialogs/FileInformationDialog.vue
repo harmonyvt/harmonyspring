@@ -109,6 +109,7 @@
 								<Button class="flex-1" @click="copySource">{{
 									isCopyingSource ? 'Copied!' : 'Copy source'
 								}}</Button>
+								<Button class="flex-1" @click="doClassifyFile"> re-Classify </Button>
 								<Button as="a" :href="file.url" :download="file.original" class="flex-1">
 									Download
 								</Button>
@@ -298,7 +299,8 @@ import {
 	getTags,
 	addFileToTag,
 	removeFileFromTag,
-	updateFile
+	updateFile,
+	getClassifiedImage
 } from '~/use/api';
 import { formatBytes, isFileVideo, isFileImage, isFileAudio } from '~/use/file';
 import { Switch } from '../ui/switch';
@@ -398,6 +400,10 @@ const doAddFileToTag = async ({ uuid, name }: { uuid: string; name: string }) =>
 const doRemoveFileFromTag = async ({ uuid }: { uuid: string }) => {
 	await removeFileFromTag(props.file.uuid, uuid);
 	fileTags.value = fileTags.value.filter(tag => tag.uuid !== uuid);
+};
+
+const doClassifyFile = async () => {
+	await getClassifiedImage(props.file.uuid);
 };
 
 const copyLink = () => {

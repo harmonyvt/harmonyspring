@@ -712,3 +712,13 @@ export const getTracklists = async () => {
 		sendErrorToast(error.message);
 	}
 };
+
+export const getClassifiedImage = async (uuid: string) => {
+	try {
+		const data = await request.post(`file/${uuid}/classify`);
+		debug('getClassifiedImage', data);
+		return data;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
