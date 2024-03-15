@@ -4,10 +4,16 @@ import { URL, fileURLToPath } from 'node:url';
 import * as FileStreamRotator from 'file-stream-rotator';
 import pino from 'pino';
 import pretty from 'pino-pretty';
+let host;
+if (process.env.NODE_ENV === 'production') {
+	host = 'dragonfly';
+} else {
+	host = 'localhost';
+}
 
-const logger = {
-	development: {
-		transport: {
+const transports = {
+	targets: [
+		{
 			target: 'pino-pretty',
 			options: {
 				translateTime: 'HH:MM:ss Z',
@@ -15,10 +21,28 @@ const logger = {
 				singleLine: true
 			}
 		},
+		{
+			target: 'pino-redis-streams',
+			options: {
+				streams: 'logs',
+				clientOptions: {
+					socket: {
+						port: 6379,
+						host
+					}
+				}
+			}
+		}
+	]
+};
+const logger = {
+	development: {
+		transport: transports,
 		level: 'debug',
 		sync: true
 	},
 	production: {
+		transport: transports,
 		redact: {
 			paths: ['hostname'],
 			remove: true

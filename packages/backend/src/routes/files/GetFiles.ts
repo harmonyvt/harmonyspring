@@ -10,6 +10,7 @@ import { queryLimitSchema } from '@/structures/schemas/QueryLimit.js';
 import { queryPageSchema } from '@/structures/schemas/QueryPage.js';
 import { responseMessageSchema } from '@/structures/schemas/ResponseMessage.js';
 import { constructFilePublicLink } from '@/utils/File.js';
+import { log } from '@/utils/Logger.js';
 export const schema = {
 	summary: 'Get files',
 	description: 'Get all the files',
@@ -72,6 +73,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 				id: 'desc'
 			}
 		})) as ExtendedFile[] | [];
+		log.debug(`Retrieved ${files.length} files for user ${req.user.id} (nsfw: ${nsfw})`);
 	} else {
 		files = (await prisma.files.findMany({
 			take: limit,
@@ -99,6 +101,7 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 				id: 'desc'
 			}
 		})) as ExtendedFile[] | [];
+		log.debug(`Retrieved ${files.length} files for user ${req.user.id} (nsfw: ${nsfw})`);
 	}
 
 	const readyFiles = [];
