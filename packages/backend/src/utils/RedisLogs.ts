@@ -1,51 +1,44 @@
-import type { LogDescriptor } from 'pino';
-import { log } from './Logger.js';
 import { redisClient } from './RedisClient.js';
 
-// Add log to a stream
-export const addLog = async (redisLog: LogDescriptor) => {
-	try {
-		// store log in a stream
-		await redisClient.xadd('logs', '*', 'log', JSON.stringify(redisLog));
+interface Log {
+	// general structur of a log
+	// Entry ID
+	hostname: string;
+	ip: string;
+	method: string;
+	msg: string;
+	reqId: string;
+	responseTime: number;
+	statusCode: number;
+	url: string;
+}
+// RedisLogs.ts
 
-		log.debug(`Added log to stream`);
-	} catch (error) {
-		log.error('Error adding log to stream', error);
-	}
-};
-
-// Function to get logs in groups of 30
-export async function getLogsInBatches(startId = '-', endId = '+', batchSize = 30) {
-	let lastId = startId;
-	const logs = [];
-
-	while (true) {
-		// Adjusted line with 'xrange' and parameters
-		const batch = await redisClient.xrange('logs', lastId, endId, 'COUNT', batchSize.toString());
-
-		// Process the batch
-		logs.push(...batch);
-
-		if (batch.length < batchSize) {
-			break; // Break if the last batch was smaller than the batchSize, indicating the end
-		}
-
-		if (batch.length > 0) {
-			const lastEntry = batch[batch.length - 1];
-			if (lastEntry !== undefined) {
-				lastId = lastEntry[0]; // Update lastId to the last entry's ID in the batch
-			}
-		}
-	}
-
-	return logs;
+export async function fetchLogsSince(lastTimestamp: number): Promise<Log[]> {
+	// Assuming logs are stored with a timestamp as their score in a sorted set
+	const logs = await redisClient.zrangebyscore('logs', lastTimestamp + 1, '+inf');
+	// parse datetime from
+	return logs.map(log => JSON.parse(log));
 }
 
-export const ResetLogs = async () => {
-	try {
-		await redisClient.del('logs');
-		log.debug('Reset logs');
-	} catch (error) {
-		log.error('Error resetting jobs', error);
+// Define the expected structure of groups
+type RedisGroupInfo = [string, string][];
+
+export async function setupGroups() {
+	// check if groups exist and cast the result to the defined type
+	const groups = (await redisClient.xinfo('GROUPS', 'logs')) as RedisGroupInfo;
+
+	const systemLogsExists = groups.some(group => group[1] === 'system-logs');
+	if (!systemLogsExists) {
+		console.log('Creating system-logs group');
+		await redisClient.xgroup('CREATE', 'logs', 'system-logs', '$', 'MKSTREAM');
 	}
-};
+
+	const systemQueriesExists = groups.some(group => group[1] === 'system-queries');
+	if (!systemQueriesExists) {
+		console.log('Creating system-queries group');
+		await redisClient.xgroup('CREATE', 'logs', 'system-queries', '$', 'MKSTREAM');
+	}
+
+	console.log('Groups are ready');
+}

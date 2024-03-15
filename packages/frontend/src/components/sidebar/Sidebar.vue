@@ -98,7 +98,8 @@ import {
 	NetworkIcon,
 	TagsIcon,
 	AudioWaveformIcon,
-	SettingsIcon
+	SettingsIcon,
+	BugIcon
 } from 'lucide-vue-next';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -144,9 +145,13 @@ const navigation = {
 		{ name: 'Snippets', href: '/dashboard/snippets', icon: CodeIcon },
 		{ name: 'Tracks', href: '/dashboard/tracks', icon: AudioWaveformIcon }
 	],
-	Account: [{ name: 'Credentials', href: '/dashboard/account', icon: KeyRoundIcon }, { name: 'Settings', href: '/dashboard/settings', icon: SettingsIcon }],
+	Account: [
+		{ name: 'Credentials', href: '/dashboard/account', icon: KeyRoundIcon },
+		{ name: 'Settings', href: '/dashboard/settings', icon: SettingsIcon }
+	],
 	Admin: [
 		{ name: 'Settings', href: '/dashboard/admin/settings', icon: Settings2Icon },
+		{ name: 'Logs', href: '/dashboard/admin/logs', icon: BugIcon },
 		{ name: 'Users', href: '/dashboard/admin/users', icon: UsersIcon },
 		{ name: 'Files', href: '/dashboard/admin/files', icon: FilesIcon },
 		{ name: 'Quarantined files', href: '/dashboard/admin/files/quarantine', icon: FilesIcon },
