@@ -4,12 +4,14 @@ import { URL, fileURLToPath } from 'node:url';
 import * as FileStreamRotator from 'file-stream-rotator';
 import pino from 'pino';
 import pretty from 'pino-pretty';
+/*
 let host;
 if (process.env.NODE_ENV === 'production') {
 	host = 'dragonfly';
 } else {
 	host = 'localhost';
 }
+*/
 
 const transports = {
 	targets: [
@@ -20,7 +22,8 @@ const transports = {
 				ignore: 'pid,hostname',
 				singleLine: true
 			}
-		},
+		}
+		/*
 		{
 			target: 'pino-redis-streams',
 			options: {
@@ -33,6 +36,7 @@ const transports = {
 				}
 			}
 		}
+		*/
 	]
 };
 const logger = {

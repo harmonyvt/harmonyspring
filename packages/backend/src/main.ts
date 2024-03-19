@@ -14,13 +14,11 @@ import Routes from './structures/routes.js';
 import { SETTINGS, loadSettings } from './structures/settings.js';
 import Docs from './utils/Docs.js';
 import { log } from './utils/Logger.js';
-import { setupGroups } from './utils/RedisLogs.js';
 import Requirements from './utils/Requirements.js';
 import { jumpstartStatistics } from './utils/StatsGenerator.js';
 import { startUpdateCheckSchedule } from './utils/UpdateCheck.js';
 import { createAdminUserIfNotExists, VERSION } from './utils/Util.js';
 import { fileWatcher, getFileWatcher } from './utils/Watcher.js';
-await setupGroups();
 dotenv.config();
 const server = fastify({
 	trustProxy: true,

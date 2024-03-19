@@ -1,154 +1,78 @@
+import process from 'node:process';
+import { Queue, QueueEvents, Worker } from 'bullmq';
 import { log } from './Logger.js';
 import { redisClient } from './RedisClient.js';
-export type Status = {
-	date: string;
-	event: string;
-	fileID: string;
-	fileURL: string;
-	jobID: string;
-	message: string;
-};
+import { processFetchFile, type FetchFileJobData } from './job/FetchFile.js';
+import { processFetchVideo, type FetchVideoJobData } from './job/FetchVideo.js';
+import type { GenerateGIFJobData } from './job/GenerateGIF.js';
+import type { GenerateTagsJobData } from './job/GenerateTags.js';
+import type { GenerateThumbnailJobData } from './job/GenerateThumbnail.js';
 
-export type ItemData = {
-	itemId: string;
-	status: Status;
+// Define queues for each job type
+type JobDataMap = {
+	FetchFile: FetchFileJobData;
+	FetchVideoYTDLP: FetchVideoJobData;
+	GenerateGIF: GenerateGIFJobData;
+	GenerateTags: GenerateTagsJobData;
+	ProcessThumbnail: GenerateThumbnailJobData;
 };
-
-// Add a new item to the user's queue
-export const addItem = async (userUUID: string, itemData: ItemData) => {
+// Generic function to add jobs
+export async function addJob<T extends keyof JobDataMap>(jobType: T, jobData: JobDataMap[T], uuid: string) {
+	const queue = new Queue(jobType, { connection: redisClient });
 	try {
-		const jobKey = `job:${userUUID}:${itemData.itemId}`;
-		// Store item data in a hash
-		await redisClient.hset(jobKey, 'status', JSON.stringify(itemData.status));
-
-		// publish to the job channel
-		await redisClient.publish('job:' + userUUID, JSON.stringify({ userUUID, itemData }));
-
-		log.debug(`Added item to queue for user ${userUUID}`);
+		const job = await queue.add(jobType, { ...jobData, uuid });
+		log.info(`[${job.id}] Added job to ${jobType} queue with ID: ${job.id} at ${job.timestamp}`);
 	} catch (error) {
-		log.error('Error adding item to queue', error);
+		console.error(`Error adding job to ${jobType} queue at`, error);
 	}
-};
-
-// Update an item's status
-export const updateStatus = async (userUUID: string, itemData: ItemData) => {
-	try {
-		const jobKey = `job:${userUUID}:${itemData.itemId}`;
-		// Update item's status in its hash
-		await redisClient.hset(jobKey, 'status', JSON.stringify(itemData.status));
-		log.debug(`Updated status for item ${itemData.itemId} to ${itemData.status.message}`);
-
-		// publish to the job channel
-		await redisClient.publish('job:' + userUUID, JSON.stringify({ userUUID, itemData }));
-
-		log.debug(`Updated item status for user ${userUUID}`);
-	} catch (error) {
-		log.error('Error updating item to queue', error);
-	}
-};
-
-// Remove an item's status
-export const removeStatus = async (userUUID: string, itemId: string) => {
-	try {
-		const jobKey = `job:${userUUID}:${itemId}`;
-
-		// Remove item's hash
-		await redisClient.del(jobKey);
-
-		// publish to the job channel
-		await redisClient.publish('job' + userUUID, JSON.stringify({ userUUID, itemId }));
-
-		log.debug(`Removed item status for user ${userUUID}`);
-	} catch (error) {
-		log.error('Error adding item to queue', error);
-	}
-};
-
-// Get an item's status
-export const getStatus = async (userUUID: string, itemId: string) => {
-	try {
-		const jobKey = `job:${userUUID}:${itemId}`;
-
-		// Retrieve item's status from its hash
-		const statusJson = await redisClient.hget(jobKey, 'status');
-		log.debug(`Retrieved status for item ${itemId}`);
-		return statusJson ? JSON.parse(statusJson) : null;
-	} catch (error) {
-		log.error('Error getting item status', error);
-	}
-};
-
-// Get all items' status for a specific user
-/*
-return export interface Item {
-	jobID: string;
-	event: string;
-	message: string;
-	date: string;
 }
-*/
-export const getAllItemsForUser = async (userUUID: string) => {
-	try {
-		// Use a pattern to match all keys related to the user's queue
-		const pattern = `job:${userUUID}:*`;
 
-		// Get all keys matching the pattern
-		const keys = await redisClient.keys(pattern);
+export async function setupQueueEvents(jobType: string) {
+	log.info(`Setting up queue events for ${jobType} queue`);
+	const queue = new QueueEvents(jobType, { connection: redisClient });
+	queue.on('waiting', job => {
+		log.info(`Job with ID: ${job.jobId} is waiting`);
+	});
+	queue.on('active', job => {
+		log.info(`Job with ID: ${job.jobId} is active`);
+	});
+	queue.on('progress', (job) => {
+		log.info(`Job with ID: ${job.jobId} has progress: ${job.data.status}, ${job.data.progress}, ${progress}`);
+	});
+	queue.on('completed', job => {
+		log.info(`Job with ID: ${job.jobId} has been completed`);
+	});
+	queue.on('failed', (job, error) => {
+		log.error(`Job with ID: ${job.jobId} has failed with error: ${error}`);
+	});
+}
 
-		// Get all items' status from their hashes
-		const items = await Promise.all(
-			keys.map(async key => {
-				const statusJson = await redisClient.hget(key, 'status');
-				return statusJson ? JSON.parse(statusJson) : null;
-			})
-		);
+export async function setupWorkers() {
+	let host;
+	if (process.env.NODE_ENV === 'production') {
+		host = 'dragonfly';
+	} else {
+		host = 'localhost';
+	}
 
-		log.debug(`Retrieved ${items.length} items for user ${userUUID}`);
-
-		// put most recent date at top of list
-		items.sort((a, b) => {
-			return new Date(b.date).getTime() - new Date(a.date).getTime();
-		});
-
-		// reduce items to only the most recent 10
-		if (items.length > 10) {
-			items.length = 10;
+	const fetchVideoWorker = new Worker('FetchVideoYTDLP', processFetchVideo, {
+		connection: {
+			host,
+			port: 6379
 		}
+	});
 
-		return items;
-	} catch (error) {
-		log.error('Error getting all items for user', error);
-		return null;
-	}
-};
-
-// reset whole queue
-export const ResetJobs = async (log: any) => {
-	try {
-		const keys = await redisClient.keys('job:*');
-		if (keys.length > 0) {
-			await redisClient.del(keys);
-			log.debug('Reset all jobs');
+	// FetchFile, GenerateGIF, GenerateTags, and GenerateThumbnail workers can be set up similarly
+	const fetchFileWorker = new Worker('FetchFile', processFetchFile, {
+		connection: {
+			host,
+			port: 6379
 		}
-	} catch (error) {
-		log.error('Error resetting jobs', error);
-	}
-};
-
-export function createStatus(event: string, message: string, jobID: string, fileID?: string, fileURL?: string): Status {
-	return {
-		date: new Date().toISOString(),
-		event,
-		jobID,
-		message,
-		fileID: fileID ?? '',
-		fileURL: fileURL ?? ''
-	};
+	});
 }
 
-export function createItemData(itemId: string, status: Status): ItemData {
-	return {
-		itemId,
-		status
-	};
-}
+// Correct usage
+// addJob('FetchFile', { url: 'http://example.com/file.pdf' });
+
+// Incorrect usage, TypeScript will show an error
+// addJob('FetchFile', { videoUrl: 'http://example.com/video.mp4' });

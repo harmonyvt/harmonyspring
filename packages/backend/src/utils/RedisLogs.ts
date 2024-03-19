@@ -1,3 +1,4 @@
+/*
 import { redisClient } from './RedisClient.js';
 
 interface Log {
@@ -42,3 +43,5 @@ export async function setupGroups() {
 
 	console.log('Groups are ready');
 }
+*/
+// eslint-disable-next-line unicorn/no-empty-file

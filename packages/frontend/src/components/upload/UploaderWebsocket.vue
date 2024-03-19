@@ -95,8 +95,8 @@ const {
 	data: jobData,
 	send: jobSend,
 	close: jobClose
-} = useWebSocket(`${secure.value}://${wsHost.value}/queue/${ownUser.value.uuid}`, {
-	autoReconnect: false
+} = useWebSocket(`${secure.value}://${wsHost.value}/event/video/${ownUser.value.uuid}`, {
+	autoReconnect: true
 });
 
 const items = ref<Item[]>([]);
