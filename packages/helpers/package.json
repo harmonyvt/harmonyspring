@@ -1,0 +1,16 @@
+{
+	"name": "@harmonyspring/helpers",
+	"version": "1.0.0",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"scripts": {
+		"type-check": "tsc"
+	},
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"devDependencies": {
+		"typescript": "^4.x.x"
+	}
+}

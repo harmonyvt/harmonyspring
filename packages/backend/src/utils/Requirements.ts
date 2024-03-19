@@ -4,9 +4,14 @@ import jetpack from 'fs-jetpack';
 import { lookpath } from 'lookpath';
 import puppeteer from 'puppeteer-core';
 import YTDlpWrap from 'yt-dlp-wrap';
-import { setupQueueEvents, setupWorkers } from './RedisQueue.js';
+import { setupQueue, setupWorkers } from './RedisQueue.js';
 export default async (log: any) => {
 	log.info('setting up workers');
+	const queueNames = ['FetchFile', 'FetchVideoYTDLP', 'GenerateGIF', 'GenerateTags', 'ProcessThumbnail'];
+	for (const element of queueNames) {
+		await setupQueue(element);
+	}
+
 	await setupWorkers();
 	log.info('workers: OK');
 	const nodeMajorVersion = process.versions.node.split('.')[0];

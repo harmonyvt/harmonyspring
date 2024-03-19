@@ -27,6 +27,7 @@
 		"@fastify/static": "^7.0.1",
 		"@fastify/swagger": "^8.14.0",
 		"@fastify/websocket": "^9.0.0",
+		"@harmonyspring/helpers": "workspace:^",
 		"@napi-rs/blake-hash": "^1.3.4",
 		"@prisma/client": "^5.9.1",
 		"@scalar/fastify-api-reference": "^1.15.5",

@@ -17,6 +17,7 @@
 	},
 	"dependencies": {
 		"@chibisafe/uploader-client": "1.0.11",
+		"@harmonyspring/helpers": "workspace:^",
 		"@headlessui/vue": "^1.7.19",
 		"@tanstack/vue-query": "^5.18.1",
 		"@types/marked": "^6.0.0",

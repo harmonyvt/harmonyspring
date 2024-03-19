@@ -1,4 +1,5 @@
 import process from 'node:process';
+import type { JobItem } from '@harmonyspring/helpers';
 import { Queue, QueueEvents, Worker } from 'bullmq';
 import { log } from './Logger.js';
 import { redisClient } from './RedisClient.js';
@@ -27,6 +28,11 @@ export async function addJob<T extends keyof JobDataMap>(jobType: T, jobData: Jo
 	}
 }
 
+export async function setupQueue(jobType: string) {
+	new Queue(jobType, { connection: redisClient });
+	log.info(`Queue for ${jobType} has been set up`);
+}
+
 export async function setupQueueEvents(jobType: string) {
 	log.info(`Setting up queue events for ${jobType} queue`);
 	const queue = new QueueEvents(jobType, { connection: redisClient });
@@ -36,8 +42,11 @@ export async function setupQueueEvents(jobType: string) {
 	queue.on('active', job => {
 		log.info(`Job with ID: ${job.jobId} is active`);
 	});
-	queue.on('progress', (job) => {
-		log.info(`Job with ID: ${job.jobId} has progress: ${job.data.status}, ${job.data.progress}, ${progress}`);
+	queue.on('progress', job => {
+		const progressData = job.data as JobItem;
+		log.info(
+			`Job with ID: ${job.jobId} has progress: ${progressData.jobType} - ${progressData.lastUpdate} - ${progressData.owner} - ${progressData.progress} - ${progressData.status} - ${progressData.title}`
+		);
 	});
 	queue.on('completed', job => {
 		log.info(`Job with ID: ${job.jobId} has been completed`);

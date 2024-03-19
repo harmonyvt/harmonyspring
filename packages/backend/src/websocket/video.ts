@@ -1,9 +1,8 @@
-import { Buffer } from 'node:buffer';
+import { setInterval } from 'node:timers';
 import type { SocketStream } from '@fastify/websocket';
-import { Queue, QueueEvents } from 'bullmq';
+import { Queue } from 'bullmq';
 import type { FastifyRequest } from 'fastify';
 import { log } from '@/utils/Logger.js';
-import { redisSub } from '@/utils/RedisClient.js';
 const queueName = 'FetchVideoYTDLP';
 export const route = {
 	url: '/event/video/:uuid',
@@ -23,15 +22,24 @@ export const run = async (connection: SocketStream, req: FastifyRequest) => {
 	const { uuid } = req.params as { uuid: string };
 	log.debug(`FOUND UUID: ${uuid}`);
 
-	const queueEvents = new QueueEvents(queueName);
 	const queue = new Queue(queueName);
 	log.info(`Queue events for ${queueName} running`);
 
 	// fetch all jobs in the queue
-	const jobs = await queue.getJobs(['waiting', 'active', 'completed', 'failed', 'delayed', 'paused']);
+	const jobs = await queue.getJobs(['waiting', 'active', 'completed', 'failed']);
 	const items = jobs.map(job => job.data);
-connection.socket.send(JSON.stringify({ items }));
-	
+	connection.socket.send(JSON.stringify({ items }));
+
+	// every second submit the status of all jobs in the queue
+	setInterval(async () => {
+		if (uuid === undefined) {
+			return;
+		}
+
+		const jobs = await queue.getJobs(['waiting', 'active', 'completed', 'failed']);
+		const items = jobs.map(job => job.data);
+		connection.socket.send(JSON.stringify({ items }));
+	}, 1000);
 	// Send a message immediately upon connection of all items in the queue
 	/*
 	for (const queueName of queueNames) {

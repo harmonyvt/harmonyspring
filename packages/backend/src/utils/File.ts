@@ -2,6 +2,7 @@ import path, { extname } from 'node:path';
 import process from 'node:process';
 import { URL, fileURLToPath } from 'node:url';
 import { DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { JobItem, JobStatus, JobType } from '@harmonyspring/helpers';
 import { Blake3Hasher } from '@napi-rs/blake-hash';
 import Zip from 'adm-zip';
 import type { Job } from 'bullmq';
@@ -627,7 +628,16 @@ export const YTDLPFilefromURL = async ({
 	user?: RequestUser | User | undefined;
 }) => {
 	const uniqueIdentifier = await getUniqueFileIdentifier();
-	await job.updateProgress({ status: 'generated unique identifier ' + uniqueIdentifier, progress: 20 });
+	await job.updateProgress(
+		new JobItem({
+			jobType: JobType.FetchVideoYTDLP,
+			lastUpdate: new Date(),
+			owner: user?.uuid ?? 'anonymous',
+			status: JobStatus.Active,
+			title: 'Unique identifier generated' + uniqueIdentifier,
+			progress: 20
+		})
+	);
 	if (!uniqueIdentifier) {
 		throw new Error('Could not generate unique identifier.');
 	}
@@ -641,20 +651,58 @@ export const YTDLPFilefromURL = async ({
 	const YTDLPWrapper = new YTDLP(HelperFolder + '/yt-dlp');
 	const tempFile = uniqueIdentifier + '.mp4';
 	const tempFilePath = tempPath + tempFile;
-	await job.updateProgress({ status: 'downloading file', progress: 40 });
+	await job.updateProgress(
+		new JobItem({
+			jobType: JobType.FetchVideoYTDLP,
+			lastUpdate: new Date(),
+			owner: user?.uuid ?? 'anonymous',
+			status: JobStatus.Active,
+			title: 'Downloading video from URL to ' + tempFilePath,
+			progress: 40
+		})
+	);
 	log.debug(`yt-dlp: attempting to download ${url} to ${tempFilePath}`);
 	const YTDLPWaiter = new Promise<void>((resolve, reject) => {
 		const YTDLPWrapperEvent = YTDLPWrapper.exec([url, '-f', 'best', '-o', tempFilePath])
 			.on('progress', async progress => {
 				log.debug(`yt-dlp: ${progress.percent}%`);
-				await job.updateProgress({ status: 'downloading file ' + progress.percent, progress: 60 });
+				await job.updateProgress(
+					new JobItem({
+						jobType: JobType.FetchVideoYTDLP,
+						lastUpdate: new Date(),
+						owner: user?.uuid ?? 'anonymous',
+						status: JobStatus.Active,
+						title: 'Attempting to download video from URL ' + progress.percent + '%',
+						progress: 60
+					})
+				);
 			})
 			.on('error', async error => {
+				await job.updateProgress(
+					new JobItem({
+						jobType: JobType.FetchVideoYTDLP,
+						lastUpdate: new Date(),
+						owner: user?.uuid ?? 'anonymous',
+						status: JobStatus.Failed,
+						title: 'Error downloading video from URL',
+						progress: 100
+					})
+				);
 				log.error(`yt-dlp: ${error.message}`);
 				reject(error);
 			})
 			.on('close', async () => {
 				log.debug(`yt-dlp: ${YTDLPWrapperEvent.ytDlpProcess?.pid} finished ` + user?.id);
+				await job.updateProgress(
+					new JobItem({
+						jobType: JobType.FetchVideoYTDLP,
+						lastUpdate: new Date(),
+						owner: user?.uuid ?? 'anonymous',
+						status: JobStatus.Active,
+						title: 'Video downloaded from URL',
+						progress: 80
+					})
+				);
 				resolve();
 			});
 	});
@@ -693,12 +741,30 @@ export const YTDLPFilefromURL = async ({
 	if (fileOnDb?.repeated) {
 		uploadedFile = fileOnDb.file;
 		await deleteTmpFile(tempPath);
-		await job.updateProgress({ status: 'file already exists', progress: 100 });
+		await job.updateProgress(
+			new JobItem({
+				status: JobStatus.Failed,
+				lastUpdate: new Date(),
+				owner: user?.uuid ?? 'anonymous',
+				jobType: JobType.FetchVideoYTDLP,
+				title: 'File already exists',
+				progress: 100
+			})
+		);
 	} else {
 		const savedFile = await storeFileToDb(user, file, albumId ? albumId : undefined);
 		uploadedFile = savedFile.file;
 		void generateThumbnails({ filename: savedFile.file.name });
-		await job.updateProgress({ status: 'file uploaded', progress: 100 });
+		await job.updateProgress(
+			new JobItem({
+				status: JobStatus.Completed,
+				lastUpdate: new Date(),
+				owner: user?.uuid ?? 'anonymous',
+				jobType: JobType.FetchVideoYTDLP,
+				title: 'File uploaded',
+				progress: 100
+			})
+		);
 	}
 
 	return uploadedFile;
