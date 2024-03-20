@@ -53,17 +53,10 @@ async function setupQueueEvents(jobType: string, connection: SocketStream) {
 	queue.on('waiting', async job => {
 		log.info(`Job with ID: ${job.jobId} is waiting`);
 		await sendUpdatedQueue(jobType, connection);
-});
+	});
 	queue.on('active', async job => {
 		log.info(`Job with ID: ${job.jobId} is active`);
 		await sendUpdatedQueue(jobType, connection);
-	});
-	queue.on('progress', job => {
-		const progressData = job.data as JobItem;
-		log.info(
-			`Job with ID: ${progressData.jobId} has progress: ${progressData.jobType} - ${progressData.lastUpdate} - ${progressData.owner} - ${progressData.progress} - ${progressData.status} - ${progressData.title}`
-		);
-		connection.socket.send(JSON.stringify({ item: progressData }));
 	});
 	queue.on('completed', async job => {
 		log.info(`Job with ID: ${job.jobId} has been completed`);
