@@ -3,6 +3,7 @@ export enum JobStatus {
 	Active = 'active',
 	Completed = 'completed',
 	Failed = 'failed',
+	Progress = 'progress',
 	Waiting = 'waiting'
 }
 
@@ -15,6 +16,7 @@ export enum JobType {
 }
 // Define the Job interface
 export interface JobStructure {
+	jobId?: string;
 	jobType: JobType;
 	lastUpdate: Date;
 	owner: string;
@@ -24,6 +26,7 @@ export interface JobStructure {
 }
 
 export class JobItem implements JobStructure {
+	public jobId?: string;
 	public jobType: JobType;
 	public lastUpdate: Date;
 	public owner: string;
@@ -33,6 +36,7 @@ export class JobItem implements JobStructure {
 	public title: string;
 
 	public constructor(job: JobStructure) {
+		this.jobId = job.jobId;
 		this.jobType = job.jobType;
 		this.lastUpdate = job.lastUpdate;
 		this.owner = job.owner;

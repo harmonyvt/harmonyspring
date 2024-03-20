@@ -630,10 +630,11 @@ export const YTDLPFilefromURL = async ({
 	const uniqueIdentifier = await getUniqueFileIdentifier();
 	await job.updateProgress(
 		new JobItem({
+			jobId: job.id as string,
 			jobType: JobType.FetchVideoYTDLP,
 			lastUpdate: new Date(),
 			owner: user?.uuid ?? 'anonymous',
-			status: JobStatus.Active,
+			status: JobStatus.Progress,
 			title: 'Unique identifier generated' + uniqueIdentifier,
 			progress: 20
 		})
@@ -653,10 +654,11 @@ export const YTDLPFilefromURL = async ({
 	const tempFilePath = tempPath + tempFile;
 	await job.updateProgress(
 		new JobItem({
+			jobId: job.id as string,
 			jobType: JobType.FetchVideoYTDLP,
 			lastUpdate: new Date(),
 			owner: user?.uuid ?? 'anonymous',
-			status: JobStatus.Active,
+			status: JobStatus.Progress,
 			title: 'Downloading video from URL to ' + tempFilePath,
 			progress: 40
 		})
@@ -668,10 +670,11 @@ export const YTDLPFilefromURL = async ({
 				log.debug(`yt-dlp: ${progress.percent}%`);
 				await job.updateProgress(
 					new JobItem({
+						jobId: job.id as string,
 						jobType: JobType.FetchVideoYTDLP,
 						lastUpdate: new Date(),
 						owner: user?.uuid ?? 'anonymous',
-						status: JobStatus.Active,
+						status: JobStatus.Progress,
 						title: 'Attempting to download video from URL ' + progress.percent + '%',
 						progress: 60
 					})
@@ -680,6 +683,7 @@ export const YTDLPFilefromURL = async ({
 			.on('error', async error => {
 				await job.updateProgress(
 					new JobItem({
+						jobId: job.id as string,
 						jobType: JobType.FetchVideoYTDLP,
 						lastUpdate: new Date(),
 						owner: user?.uuid ?? 'anonymous',
@@ -695,10 +699,11 @@ export const YTDLPFilefromURL = async ({
 				log.debug(`yt-dlp: ${YTDLPWrapperEvent.ytDlpProcess?.pid} finished ` + user?.id);
 				await job.updateProgress(
 					new JobItem({
+						jobId: job.id as string,
 						jobType: JobType.FetchVideoYTDLP,
 						lastUpdate: new Date(),
 						owner: user?.uuid ?? 'anonymous',
-						status: JobStatus.Active,
+						status: JobStatus.Progress,
 						title: 'Video downloaded from URL',
 						progress: 80
 					})
@@ -743,6 +748,7 @@ export const YTDLPFilefromURL = async ({
 		await deleteTmpFile(tempPath);
 		await job.updateProgress(
 			new JobItem({
+				jobId: job.id as string,
 				status: JobStatus.Failed,
 				lastUpdate: new Date(),
 				owner: user?.uuid ?? 'anonymous',
@@ -757,6 +763,7 @@ export const YTDLPFilefromURL = async ({
 		void generateThumbnails({ filename: savedFile.file.name });
 		await job.updateProgress(
 			new JobItem({
+				jobId: job.id as string,
 				status: JobStatus.Completed,
 				lastUpdate: new Date(),
 				owner: user?.uuid ?? 'anonymous',

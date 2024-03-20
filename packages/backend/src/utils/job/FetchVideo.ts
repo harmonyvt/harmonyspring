@@ -23,6 +23,7 @@ export async function processFetchVideo(job: Job<FetchVideoJobData>) {
 		job
 	});
 	return new JobItem({
+		jobId: job.id as string,
 		jobType: JobType.FetchVideoYTDLP,
 		lastUpdate: new Date(),
 		owner: job.data.user?.uuid ?? 'anonymous',

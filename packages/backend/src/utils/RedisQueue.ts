@@ -33,29 +33,6 @@ export async function setupQueue(jobType: string) {
 	log.info(`Queue for ${jobType} has been set up`);
 }
 
-export async function setupQueueEvents(jobType: string) {
-	log.info(`Setting up queue events for ${jobType} queue`);
-	const queue = new QueueEvents(jobType, { connection: redisClient });
-	queue.on('waiting', job => {
-		log.info(`Job with ID: ${job.jobId} is waiting`);
-	});
-	queue.on('active', job => {
-		log.info(`Job with ID: ${job.jobId} is active`);
-	});
-	queue.on('progress', job => {
-		const progressData = job.data as JobItem;
-		log.info(
-			`Job with ID: ${job.jobId} has progress: ${progressData.jobType} - ${progressData.lastUpdate} - ${progressData.owner} - ${progressData.progress} - ${progressData.status} - ${progressData.title}`
-		);
-	});
-	queue.on('completed', job => {
-		log.info(`Job with ID: ${job.jobId} has been completed`);
-	});
-	queue.on('failed', (job, error) => {
-		log.error(`Job with ID: ${job.jobId} has failed with error: ${error}`);
-	});
-}
-
 export async function setupWorkers() {
 	let host;
 	if (process.env.NODE_ENV === 'production') {
@@ -80,8 +57,22 @@ export async function setupWorkers() {
 	});
 }
 
-// Correct usage
-// addJob('FetchFile', { url: 'http://example.com/file.pdf' });
+// Function to retrieve the status and, if applicable, the progress of a job
+export async function getJobStatusAndProgress(queueName: string, jobId: string): Promise<JobStatusResult> {
+  const queue = new Queue(queueName, { connection: redisClient });
+  const job = await queue.getJob(jobId);
 
-// Incorrect usage, TypeScript will show an error
-// addJob('FetchFile', { videoUrl: 'http://example.com/video.mp4' });
+  if (!job) {
+    throw new Error(`Job with ID ${jobId} not found in queue ${queueName}`);
+  }
+
+  const state = await job.getState();
+  const progress = await job.progress();
+
+  // Assuming 'active' state indicates a job in progress
+  if (state === 'active') {
+    return { status: state, progress };
+  } else {
+    return { status: state };
+  }
+}
