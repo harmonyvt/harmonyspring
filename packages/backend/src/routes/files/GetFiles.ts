@@ -10,6 +10,7 @@ import { queryLimitSchema } from '@/structures/schemas/QueryLimit.js';
 import { queryPageSchema } from '@/structures/schemas/QueryPage.js';
 import { responseMessageSchema } from '@/structures/schemas/ResponseMessage.js';
 import { constructFilePublicLink } from '@/utils/File.js';
+import { log } from '@/utils/Logger.js';
 export const schema = {
 	summary: 'Get files',
 	description: 'Get all the files',
@@ -41,11 +42,18 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 
 	const count = await prisma.files.count({
 		where: {
-			userId: req.user.id,
-			nsfw
+			userId: req.user.id
 		}
 	});
-	let files;
+
+	const nsfwCount = await prisma.files.count({
+		where: {
+			userId: req.user.id,
+			nsfw: true
+		}
+	});
+
+	let files: ExtendedFile[] | [];
 	if (nsfw) {
 		files = (await prisma.files.findMany({
 			take: limit,
@@ -101,6 +109,39 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		})) as ExtendedFile[] | [];
 	}
 
+	if (files.length < limit) {
+		console.log('fetching more files');
+		// fetch more files from the next page or if last page ignore
+		const remainingFiles = limit - files.length;
+		const remainingFilesFromNextPage = (await prisma.files.findMany({
+			take: remainingFiles,
+			skip: (page - 1) * limit,
+			where: {
+				userId: req.user.id,
+				nsfw: false // Only retrieve non-NSFW files when nsfw is false
+			},
+			select: {
+				createdAt: true,
+				editedAt: true,
+				hash: true,
+				ip: true,
+				name: true,
+				original: true,
+				size: true,
+				type: true,
+				uuid: true,
+				quarantine: true,
+				nsfw: true,
+				isS3: true,
+				isWatched: true
+			},
+			orderBy: {
+				id: 'desc'
+			}
+		})) as ExtendedFile[] | [];
+		files.push(...remainingFilesFromNextPage);
+	}
+
 	const readyFiles = [];
 	for (const file of files) {
 		readyFiles.push({
@@ -109,9 +150,10 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		});
 	}
 
+	log.debug('Retrieved files ' + readyFiles.length);
 	return res.send({
 		message: 'Successfully retrieved files',
 		files: readyFiles,
-		count
+		count: nsfw ? count : count - nsfwCount
 	});
 };

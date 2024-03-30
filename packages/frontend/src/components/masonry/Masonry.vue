@@ -23,41 +23,43 @@
 				</div>
 				<!-- If nsfw blur video or image -->
 				<template v-else-if="isFileImage(file) || isFileVideo(file)">
-					<a
-						v-if="type === 'publicAlbum'"
-						class="w-full h-full absolute"
-						:href="file?.url"
-						target="_blank"
-						rel="noopener noreferrer"
-						variant="none"
-					/>
-					<img
-						:src="file.thumb"
-						class="cursor-pointer w-full min-w-[160px]"
-						:class="{
-							'blur-md': file.nsfw && !isHovered[file.uuid ?? file.name],
-							unblur: isHovered[file.uuid ?? file.name]
-						}"
-						onerror="this.classList.add('min-h-[160px]');"
-					/>
+					<FilesRight :file="file">
+						<a
+							v-if="type === 'publicAlbum'"
+							class="w-full h-full absolute"
+							:href="file?.url"
+							target="_blank"
+							rel="noopener noreferrer"
+							variant="none"
+						/>
+						<img
+							:src="file.thumb"
+							class="cursor-pointer w-full min-w-[160px]"
+							:class="{
+								'blur-md': file.nsfw && !isHovered[file.uuid ?? file.name],
+								unblur: isHovered[file.uuid ?? file.name]
+							}"
+							onerror="this.classList.add('min-h-[160px]');"
+						/>
 
-					<video
-						v-if="isFileVideo(file) && isHovered[file.uuid ?? file.name]"
-						class="preview absolute top-0 left-0 w-full h-full pointer-events-none min-w-[160px]"
-						:class="{
-							'blur-md': file.nsfw && !isHovered[file.uuid ?? file.name],
-							unblur: isHovered[file.uuid ?? file.name]
-						}"
-						autoplay
-						loop
-						muted
-					>
-						<source :src="file.preview" type="video/mp4" />
-					</video>
-					<VideoIcon
-						v-if="isFileVideo(file)"
-						class="absolute bottom-1 right-1 w-6 h-6 text-light-100 pointer-events-none"
-					/>
+						<video
+							v-if="isFileVideo(file) && isHovered[file.uuid ?? file.name]"
+							class="preview absolute top-0 left-0 w-full h-full pointer-events-none min-w-[160px]"
+							:class="{
+								'blur-md': file.nsfw && !isHovered[file.uuid ?? file.name],
+								unblur: isHovered[file.uuid ?? file.name]
+							}"
+							autoplay
+							loop
+							muted
+						>
+							<source :src="file.preview" type="video/mp4" />
+						</video>
+						<VideoIcon
+							v-if="isFileVideo(file)"
+							class="absolute bottom-1 right-1 w-6 h-6 text-light-100 pointer-events-none"
+						/>
+					</FilesRight>
 				</template>
 
 				<div v-else class="h-40 bg-dark-90 flex flex-col justify-center items-center cursor-pointer">
@@ -92,6 +94,7 @@ import { computed, ref, watch } from 'vue';
 import FileInformationDialog from '@/components/dialogs/FileInformationDialog.vue';
 import { FileWithAdditionalData, FilePropsType } from '@/types';
 import { isFileVideo, isFileImage, isFileAudio, isFilePDF } from '~/use/file';
+import { FilesRight } from '@/components/mouse/FilesRight';
 
 const props = defineProps<{
 	// eslint-disable-next-line vue/no-unused-properties
