@@ -84,6 +84,17 @@ export interface Album {
 	zippedAt: string;
 }
 
+export interface QuickAlbum {
+	createdAt: string;
+	description: string;
+	editedAt: string;
+	id: number;
+	name: string;
+	nsfw: boolean;
+	uuid: string;
+	zippedAt: string;
+}
+
 export interface AlbumForMasonry {
 	count: number;
 	description: string;

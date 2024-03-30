@@ -1,5 +1,5 @@
 import { toast } from 'vue-sonner';
-import type { File } from '@/types';
+import type { File, QuickAlbum } from '@/types';
 import { debug } from '~/use/log';
 import { request } from './fetch';
 
@@ -708,6 +708,26 @@ export const getTracklists = async () => {
 		const data = await request.get('trackslist');
 		debug('getTracks', data);
 		return data;
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
+
+export const getQuickAlbums = async () => {
+	try {
+		const data = await request.get('album/quick');
+		debug('getQuickAlbums', data);
+		return data.quickAlbums as QuickAlbum[];
+	} catch (error: any) {
+		sendErrorToast(error.message);
+	}
+};
+
+export const assignQuickAlbums = async (albums: string[]) => {
+	try {
+		const data = await request.post('album/quick', { albums });
+		debug('assignQuickAlbums', data);
+		if (data.message) sendSuccessToast(data.message);
 	} catch (error: any) {
 		sendErrorToast(error.message);
 	}

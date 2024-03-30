@@ -7,23 +7,23 @@
 				v-element-hover="(value: boolean) => onHover(value, file.uuid ?? file.name)"
 				class="mb-4 m-2 relative"
 			>
-				<FileInformationDialog
-					v-if="
-						(type !== 'publicAlbum' && !file.quarantine) ||
-						((type === 'admin' || type === 'quarantine') && file.quarantine)
-					"
-					:file="file"
-					:type="type"
-				/>
-				<div
-					v-if="file.quarantine"
-					class="w-[225px] h-40 bg-dark-90 flex flex-col justify-center items-center cursor-not-allowed"
-				>
-					<FileWarningIcon class="text-red-500 w-16 h-16" />
-				</div>
-				<!-- If nsfw blur video or image -->
-				<template v-else-if="isFileImage(file) || isFileVideo(file)">
-					<FilesRight :file="file">
+				<FilesRight :file="file">
+					<FileInformationDialog
+						v-if="
+							(type !== 'publicAlbum' && !file.quarantine) ||
+							((type === 'admin' || type === 'quarantine') && file.quarantine)
+						"
+						:file="file"
+						:type="type"
+					/>
+					<div
+						v-if="file.quarantine"
+						class="w-[225px] h-40 bg-dark-90 flex flex-col justify-center items-center cursor-not-allowed"
+					>
+						<FileWarningIcon class="text-red-500 w-16 h-16" />
+					</div>
+					<!-- If nsfw blur video or image -->
+					<template v-else-if="isFileImage(file) || isFileVideo(file)">
 						<a
 							v-if="type === 'publicAlbum'"
 							class="w-full h-full absolute"
@@ -59,28 +59,32 @@
 							v-if="isFileVideo(file)"
 							class="absolute bottom-1 right-1 w-6 h-6 text-light-100 pointer-events-none"
 						/>
-					</FilesRight>
-				</template>
+					</template>
 
-				<div v-else class="h-40 bg-dark-90 flex flex-col justify-center items-center cursor-pointer">
-					<a
-						v-if="type === 'publicAlbum'"
-						class="w-full h-full absolute"
-						:href="file?.url"
-						target="_blank"
-						rel="noopener noreferrer"
-						variant="none"
-					/>
-					<FileAudioIcon v-if="isFileAudio(file)" class="text-light-100 w-16 h-16" />
-					<FileTextIcon v-else-if="isFilePDF(file)" class="text-light-100 w-16 h-16" />
-					<FileIcon v-else class="text-light-100 w-16 h-16" />
-					<span v-if="file.original" class="text-light-100 mt-4 text-lg text-center break-all w-[160px]">{{
-						file.original.length > 60 ? `${file.original.substring(0, 40)}...` : file.original
-					}}</span>
-					<span v-else class="text-light-100 mt-4 text-lg text-center break-all w-[160px]">{{
-						file.name.length > 60 ? `${file.name.substring(0, 40)}...` : file.name
-					}}</span>
-				</div>
+					<div v-else class="h-40 bg-dark-90 flex flex-col justify-center items-center cursor-pointer">
+						<a
+							v-if="type === 'publicAlbum'"
+							class="w-full h-full absolute"
+							:href="file?.url"
+							target="_blank"
+							rel="noopener noreferrer"
+							variant="none"
+						/>
+						<FileAudioIcon v-if="isFileAudio(file)" class="text-light-100 w-16 h-16" />
+						<FileTextIcon v-else-if="isFilePDF(file)" class="text-light-100 w-16 h-16" />
+						<FileIcon v-else class="text-light-100 w-16 h-16" />
+						<span
+							v-if="file.original"
+							class="text-light-100 mt-4 text-lg text-center break-all w-[160px]"
+							>{{
+								file.original.length > 60 ? `${file.original.substring(0, 40)}...` : file.original
+							}}</span
+						>
+						<span v-else class="text-light-100 mt-4 text-lg text-center break-all w-[160px]">{{
+							file.name.length > 60 ? `${file.name.substring(0, 40)}...` : file.name
+						}}</span>
+					</div>
+				</FilesRight>
 			</div>
 		</div>
 	</div>
@@ -92,9 +96,9 @@ import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
 import { VideoIcon, FileIcon, FileTextIcon, FileAudioIcon, FileWarningIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import FileInformationDialog from '@/components/dialogs/FileInformationDialog.vue';
+import FilesRight from '@/components/mouse/FilesRight.vue';
 import { FileWithAdditionalData, FilePropsType } from '@/types';
 import { isFileVideo, isFileImage, isFileAudio, isFilePDF } from '~/use/file';
-import { FilesRight } from '@/components/mouse/FilesRight';
 
 const props = defineProps<{
 	// eslint-disable-next-line vue/no-unused-properties
