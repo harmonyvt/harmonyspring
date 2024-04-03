@@ -1502,6 +1502,7 @@ __metadata:
     moment: ^2.30.1
     node-fetch: ^3.3.2
     node-schedule: ^2.1.1
+    ollama: ^0.5.0
     pino: ^8.18.0
     pino-pretty: ^10.3.1
     prettier: ^3.2.5
@@ -10796,6 +10797,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ollama@npm:^0.5.0":
+  version: 0.5.0
+  resolution: "ollama@npm:0.5.0"
+  dependencies:
+    whatwg-fetch: ^3.6.20
+  checksum: 41478052ce62aad05a7c19f41e6019b17afaaa9b4c384da4b0bb2c0bee5e6fcb417be88845b233d80dd0780ea7acf45846e71f363be6ccaecd2fa75ad75d73ba
+  languageName: node
+  linkType: hard
+
 "on-exit-leak-free@npm:^2.1.0":
   version: 2.1.0
   resolution: "on-exit-leak-free@npm:2.1.0"
@@ -14377,6 +14387,13 @@ __metadata:
   version: 0.5.0
   resolution: "webpack-virtual-modules@npm:0.5.0"
   checksum: 22b59257b55c89d11ae295b588b683ee9fdf3aeb591bc7b6f88ac1d69cb63f4fcb507666ea986866dfae161a1fa534ad6fb4e2ea91bbcd0a6d454368d7d4c64b
+  languageName: node
+  linkType: hard
+
+"whatwg-fetch@npm:^3.6.20":
+  version: 3.6.20
+  resolution: "whatwg-fetch@npm:3.6.20"
+  checksum: c58851ea2c4efe5c2235f13450f426824cf0253c1d45da28f45900290ae602a20aff2ab43346f16ec58917d5562e159cd691efa368354b2e82918c2146a519c5
   languageName: node
   linkType: hard
 

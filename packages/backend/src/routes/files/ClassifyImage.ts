@@ -1,5 +1,6 @@
 import { URL, fileURLToPath } from 'node:url';
 import type { FastifyReply } from 'fastify';
+import ollama from 'ollama';
 import { z } from 'zod';
 import prisma from '@/structures/database.js';
 import type { RequestWithUser } from '@/structures/interfaces.js';
@@ -45,12 +46,19 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 		return;
 	}
 
-	const { classifyImage } = await import('@/utils/ImageClassifier.js');
-
 	// get the path of the file
 	const filePath = fileURLToPath(new URL(`../../../../../uploads/${file.name}`, import.meta.url));
 
-	const results = await classifyImage(filePath);
+	const results = await ollama.chat({
+		model: 'llava',
+		messages: [
+			{
+				role: 'user',
+				content: 'Describe this image:',
+				images: [filePath]
+			}
+		]
+	});
 
 	// will return
 	// [
