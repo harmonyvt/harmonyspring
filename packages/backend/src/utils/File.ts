@@ -12,6 +12,7 @@ import fetch from 'node-fetch';
 import randomstring from 'randomstring';
 import { v4 as uuidv4 } from 'uuid';
 import YTDlpWrap from 'yt-dlp-wrap';
+import { uploadToNetworkStorage } from '@/routes/files/Upload.js';
 import prisma from '@/structures/database.js';
 import type { FileInProgress, RequestUser, User } from '@/structures/interfaces.js';
 import { SETTINGS } from '@/structures/settings.js';

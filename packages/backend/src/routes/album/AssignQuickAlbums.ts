@@ -42,11 +42,12 @@ export const run = async (req: RequestWithUser, res: FastifyReply) => {
 			},
 			data: {
 				quickAlbums: {
-					deleteMany: {}
+					set: []
 				}
 			}
 		});
-		return res.send({ message: 'Quick albums assigned successfully' });
+
+		return res.send({ message: 'Quick albums removed successfully' });
 	}
 
 	// Make sure the albums exist and they belong to the user

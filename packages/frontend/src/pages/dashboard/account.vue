@@ -99,7 +99,7 @@ import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog.vue';
 import InputWithLabel from '@/components/input/InputWithLabel.vue';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Album, QuickAlbum } from '@/types';
+import { Album } from '@/types';
 import Breadcrumbs from '~/components/breadcrumbs/Breadcrumbs.vue';
 import { useAlbumsStore } from '~/store';
 import { useUserStore } from '~/store/user';
@@ -117,9 +117,11 @@ onMounted(async () => {
 	if (!quickAlbums) return;
 	// check albums which are included in quick albums
 	for (const quickAlbum of quickAlbums) {
-		const matchingAlbums = albums.value.filter(album => album.uuid === quickAlbum.uuid);
-		console.log(matchingAlbums);
-		selectedAlbums.value.push(...matchingAlbums);
+		for (const album of albums.value)
+			if (quickAlbum.uuid === album.uuid) {
+				console.log('pushing quick album ' + quickAlbum.name + ' to ' + album.name);
+				selectedAlbums.value.push(album);
+			}
 	}
 });
 void albumsStore.get();
