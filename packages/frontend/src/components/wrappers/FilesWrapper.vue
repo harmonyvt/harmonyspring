@@ -17,12 +17,6 @@
 		>
 			<SearchIcon />
 		</button>
-		<template v-if="props.type === 'uploads'">
-			<Switch id="nsfw" :checked="nsfw" @click="setNsfw" />
-			<label class="pointer-events-none inline-block px-1 text-xs font-medium text-light-100"
-				>{{ nsfw ? 'NSFW Enabled' : 'NSFW Disabled' }}
-			</label>
-		</template>
 		<!-- <button type="button" class="bg-dark-80 text-light-100 p-2 h-10" @click="nothing">Bulk actions</button> -->
 		<!-- Pagination -->
 		<div class="flex-grow" />
@@ -98,7 +92,6 @@ import FilesTable from '~/components/table/FilesTable.vue';
 import { useUserStore, useAlbumsStore, useModalStore } from '~/store';
 import { publicOnly } from '~/store/files';
 import type { FilePropsType } from '~/types';
-import Switch from '../ui/switch/Switch.vue';
 
 const props = defineProps<{
 	type: FilePropsType;
@@ -120,7 +113,6 @@ const page = ref(route.query.page ? Number(route.query.page ?? 1) : 1);
 const search = computed(() => (route.query.search ? String(route.query.search) : ''));
 const limit = ref(50);
 const anon = computed(() => publicOnly.value);
-const nsfw = ref(false);
 
 const fetchKey = computed(() => {
 	const key = [];
@@ -183,13 +175,13 @@ const typeToFetch = (currentPage: Ref<number>, currentLimit: Ref<number>, anonym
 		case 'publicAlbum':
 			return getFilesFromPublicAlbum(props.identifier!, currentPage.value, currentLimit.value);
 		case 'uploads':
-			return getFiles(currentPage.value, nsfw.value, currentLimit.value);
+			return getFiles(currentPage.value, currentLimit.value);
 		default:
 			break;
 	}
 };
 
-const { data, refetch } = useQuery({
+const { data } = useQuery({
 	queryKey: fetchKey,
 	queryFn: async () => {
 		const response = await typeToFetch(page, limit, anon);
@@ -228,8 +220,4 @@ watch(
 	},
 	{ immediate: true }
 );
-const setNsfw = async () => {
-	nsfw.value = !nsfw.value;
-	await refetch();
-};
 </script>

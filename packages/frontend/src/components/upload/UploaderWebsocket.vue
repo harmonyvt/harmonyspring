@@ -1,6 +1,6 @@
 <template>
-	<div class="flex w-full mt-16 flex-col rounded-md items-center justify-center p-4 py-8 max-w-4xl mobile:mt-8">
-		<div class="container px-1 md:px-6 max-w-3xl mobile:px-4">
+	<div class="flex w-full mt-16 flex-col rounded-md items-center justify-center p-4 py-8 max-w-4xl">
+		<div class="container px-1 md:px-6 max-w-3xl">
 			<div class="grid gap-4">
 				<template v-if="items.length > 0">
 					<div
@@ -17,14 +17,13 @@
 							>
 								<div class="flex gap-4">
 									<template v-if="item.event === 'InProgress'">
-										<ActivityIcon class="w-6 h-6 text-blue-400" />
+										<ActivityIcon class="w-6 h-6 text-yellow-500" />
 									</template>
 									<template v-else-if="item.event === 'Error'">
 										<BugIcon class="w-6 h-6 text-red-500" />
 									</template>
 									<template v-else-if="item.event === 'Finish'">
-										<GoalIcon class="w-12 h-12 text-green-400" />
-										<img :src="retrieveThumb(item.fileURL)" class="w-12 h-12" />
+										<GoalIcon class="w-6 h-6 text-green-500" />
 									</template>
 									<div class="grid gap-1">
 										<h3 class="text-lg font-semibold text-white">
@@ -67,15 +66,16 @@ const userStore = useUserStore();
 const ownUser = computed(() => userStore.user);
 // Dynamically determine the WebSocket host based on the environment
 const wsHost = computed(() => {
+	// if not secure return localhost/ip + port
+	// eslint-disable-next-line n/prefer-global/url
+	const reference = new URL(import.meta.url);
+	if (reference.protocol === 'https:') {
 		// eslint-disable-next-line n/prefer-global/url
-		const reference = new URL(import.meta.url);
-		if (reference.protocol === 'https:') {
-			// eslint-disable-next-line n/prefer-global/url
-			return new URL(import.meta.url).hostname;
-		} else {
-			// eslint-disable-next-line n/prefer-global/url
-			return `${new URL(import.meta.url).hostname}:${new URL(import.meta.url).port}`;
-		}
+		return new URL(import.meta.url).hostname;
+	} else {
+		// eslint-disable-next-line n/prefer-global/url
+		return `${new URL(import.meta.url).hostname}:${new URL(import.meta.url).port}`;
+	}
 });
 const secure = computed(() => {
 	// if import.meta.url.protocol is 'https:', then return secure websocket else return insecure
@@ -130,31 +130,5 @@ watchEffect(() => {
 const removeJob = async (itemID: string) => {
 	console.log('Removing job:', itemID);
 	jobSend(JSON.stringify({ action: 'remove', itemID }));
-};
-
-const retrieveThumb = (fileUrl: string) => {
-	try {
-		console.log('Retrieving thumb:', fileUrl);
-		// eslint-disable-next-line n/prefer-global/url
-		const url = new URL(fileUrl);
-		// extract fileID from url
-		const fileID = url.pathname.split('/').pop();
-
-		// if file id has .mp3, .wav or .ogg extension, return default audioUrl
-		if (fileID?.includes('.mp3') || fileID?.includes('.wav') || fileID?.includes('.ogg')) {
-			return 'https://cdn.7tv.app/emote/60b00d1f0d3a78a196f803e3/1x.webp';
-		}
-
-		// if fileid has no extension, return default fileUrl
-		if (!fileID?.includes('.')) {
-			return 'https://cdn.7tv.app/emote/645c29a0a93fbaf6fa2b5647/1x.webp';
-		}
-
-		const thumbUrl = `${url.origin}/thumbs/${fileID?.split('.')[0]}.webp`;
-		return thumbUrl;
-	} catch (error) {
-		console.error(error);
-		return fileUrl;
-	}
 };
 </script>

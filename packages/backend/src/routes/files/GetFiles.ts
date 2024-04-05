@@ -2,7 +2,6 @@ import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 import prisma from '@/structures/database.js';
 import type { RequestWithUser, ExtendedFile } from '@/structures/interfaces.js';
-import { booleanSchema } from '@/structures/schemas/Boolean.js';
 import { fileAsUserSchema } from '@/structures/schemas/FileAsUser.js';
 import { http4xxErrorSchema } from '@/structures/schemas/HTTP4xxError.js';
 import { http5xxErrorSchema } from '@/structures/schemas/HTTP5xxError.js';
@@ -10,14 +9,14 @@ import { queryLimitSchema } from '@/structures/schemas/QueryLimit.js';
 import { queryPageSchema } from '@/structures/schemas/QueryPage.js';
 import { responseMessageSchema } from '@/structures/schemas/ResponseMessage.js';
 import { constructFilePublicLink } from '@/utils/File.js';
+
 export const schema = {
 	summary: 'Get files',
 	description: 'Get all the files',
 	tags: ['Files'],
 	query: z.object({
 		page: queryPageSchema,
-		limit: queryLimitSchema,
-		nsfw: booleanSchema.describe('Whether to retrieve NSFW files or not.')
+		limit: queryLimitSchema
 	}),
 	response: {
 		200: z.object({
@@ -37,69 +36,39 @@ export const options = {
 };
 
 export const run = async (req: RequestWithUser, res: FastifyReply) => {
-	const { page = 1, limit = 50, nsfw = false } = req.query as { limit?: number; nsfw?: boolean; page?: number };
+	const { page = 1, limit = 50 } = req.query as { limit?: number; page?: number };
 
 	const count = await prisma.files.count({
 		where: {
-			userId: req.user.id,
-			nsfw
+			userId: req.user.id
 		}
 	});
-	let files;
-	if (nsfw) {
-		files = (await prisma.files.findMany({
-			take: limit,
-			skip: (page - 1) * limit,
-			where: {
-				userId: req.user.id
-			},
-			select: {
-				createdAt: true,
-				editedAt: true,
-				hash: true,
-				ip: true,
-				name: true,
-				original: true,
-				size: true,
-				type: true,
-				uuid: true,
-				quarantine: true,
-				nsfw: true,
-				isS3: true,
-				isWatched: true
-			},
-			orderBy: {
-				id: 'desc'
-			}
-		})) as ExtendedFile[] | [];
-	} else {
-		files = (await prisma.files.findMany({
-			take: limit,
-			skip: (page - 1) * limit,
-			where: {
-				userId: req.user.id,
-				nsfw: false // Only retrieve non-NSFW files when nsfw is false
-			},
-			select: {
-				createdAt: true,
-				editedAt: true,
-				hash: true,
-				ip: true,
-				name: true,
-				original: true,
-				size: true,
-				type: true,
-				uuid: true,
-				quarantine: true,
-				nsfw: true,
-				isS3: true,
-				isWatched: true
-			},
-			orderBy: {
-				id: 'desc'
-			}
-		})) as ExtendedFile[] | [];
-	}
+
+	const files = (await prisma.files.findMany({
+		take: limit,
+		skip: (page - 1) * limit,
+		where: {
+			userId: req.user.id
+		},
+		select: {
+			createdAt: true,
+			editedAt: true,
+			hash: true,
+			ip: true,
+			name: true,
+			original: true,
+			size: true,
+			type: true,
+			uuid: true,
+			quarantine: true,
+			nsfw: true,
+			isS3: true,
+			isWatched: true
+		},
+		orderBy: {
+			id: 'desc'
+		}
+	})) as ExtendedFile[] | [];
 
 	const readyFiles = [];
 	for (const file of files) {
