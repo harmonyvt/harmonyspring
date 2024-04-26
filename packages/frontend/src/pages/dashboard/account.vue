@@ -9,31 +9,6 @@
 					}
 				]"
 			/>
-			<h1 class="text-2xl mt-8 font-semibold text-light-100">Quick Albums</h1>
-			<div class="mt-8 bg-dark-110 p-8">
-				<p class="text-light-100">Assign albums to quick assign [max: 3]</p>
-				<template v-for="album in albums" :key="album.uuid">
-					<div class="flex flex-col gap-2.5">
-						<label class="flex flex-row gap-4 items-center [&>.checkbox]:hover:bg-neutral-100">
-							<input
-								v-model="selectedAlbums"
-								type="checkbox"
-								:value="album.uuid"
-								:disabled="isSelectionLimitReached"
-								@change="toggleAlbumSelection(album)"
-							/>
-							<span class="select-none text-white">{{ album.name }}</span>
-						</label>
-					</div>
-				</template>
-				<template v-if="isSelectionLimitReached">
-					<p v-if="isSelectionLimitReached" class="text-red-400">Selection limit reached.</p>
-					<Button class="mt-4" @click="resetSelection">Reset</Button>
-				</template>
-				<template v-if="itemsSelected">
-					<Button class="mt-4" @click="doAssignAlbums">Assign Quick Album</Button>
-				</template>
-			</div>
 			<h1 class="text-2xl mt-8 font-semibold text-light-100">My account</h1>
 			<div class="mt-8 bg-dark-110 p-8">
 				<span class="text-light-100 block">Your current username. Can't be changed.</span>
@@ -93,22 +68,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog.vue';
 import InputWithLabel from '@/components/input/InputWithLabel.vue';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Album } from '@/types';
 import Breadcrumbs from '~/components/breadcrumbs/Breadcrumbs.vue';
 import { useAlbumsStore } from '~/store';
 import { useUserStore } from '~/store/user';
-import { changePassword, changeApiKey, getQuickAlbums, assignQuickAlbums, getAlbums } from '~/use/api';
+import { changePassword, changeApiKey} from '~/use/api';
 import { formatBytes } from '~/use/file';
 const userStore = useUserStore();
 const albumsStore = useAlbumsStore();
-const albums = ref<Album[]>([]);
-const selectedAlbums = ref<Album[]>([]);
+/*
 onMounted(async () => {
 	const quickAlbums = await getQuickAlbums();
 	const responseAlbums = await getAlbums();
@@ -124,6 +97,7 @@ onMounted(async () => {
 			}
 	}
 });
+*/
 void albumsStore.get();
 albumsStore.album = null;
 const username = computed(() => userStore.user.username);
@@ -187,7 +161,7 @@ const doRequestApiKey = async () => {
 	if (!response) return;
 	userStore.user.apiKey = response.apiKey;
 };
-
+/*
 const toggleAlbumSelection = (album: Album) => {
 	const index = selectedAlbums.value.findIndex(a => a.uuid === album.uuid);
 	if (index > -1) {
@@ -197,7 +171,6 @@ const toggleAlbumSelection = (album: Album) => {
 		selectedAlbums.value.push(album);
 	}
 };
-
 const isSelectionLimitReached = computed(() => selectedAlbums.value.length > 3);
 
 const resetSelection = async () => {
@@ -212,4 +185,5 @@ const doAssignAlbums = async () => {
 };
 
 const itemsSelected = computed(() => selectedAlbums.value.length > 0);
+*/
 </script>
